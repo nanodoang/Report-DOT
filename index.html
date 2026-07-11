@@ -176,6 +176,41 @@
     padding:30px 0;
     font-size:13px;
   }
+  .tabs{
+    display:flex;
+    gap:8px;
+    margin:16px 0 12px;
+    background:var(--panel2);
+    padding:4px;
+    border-radius:10px;
+    border:1px solid var(--border);
+  }
+  .tab-btn{
+    flex:1;
+    text-align:center;
+    padding:9px 6px;
+    border-radius:8px;
+    font-size:13px;
+    font-weight:700;
+    background:transparent;
+    color:var(--muted);
+    border:none;
+  }
+  .tab-btn.active{
+    background:var(--accent);
+    color:#fff;
+  }
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+  .dot-detail{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:2px 12px;
+    font-size:11px;
+    color:var(--muted);
+    margin-top:4px;
+  }
+  .dot-detail span b{color:var(--text);font-weight:600;}
 </style>
 </head>
 <body>
@@ -198,11 +233,17 @@
     <div class="stat pct"><div class="num" id="ovPct">0%</div><div class="label">OTD</div></div>
   </div>
 
-  <div class="section-title">📦 Per Ekspedisi (kirim ke admin ekspedisi)</div>
-  <div id="expedisiList"></div>
+  <div class="tabs">
+    <button class="tab-btn active" id="tabBtnExp" onclick="switchTab('exp')">📦 Ekspedisi</button>
+    <button class="tab-btn" id="tabBtnDist" onclick="switchTab('dist')">🏢 Distributor</button>
+  </div>
 
-  <div class="section-title">🏢 Per Distributor (info armada sudah tiba)</div>
-  <div id="distributorList"></div>
+  <div class="tab-panel active" id="panelExp">
+    <div id="expedisiList"></div>
+  </div>
+  <div class="tab-panel" id="panelDist">
+    <div id="distributorList"></div>
+  </div>
 </main>
 
 <script>
@@ -230,6 +271,13 @@ const COL = {
   ISSUE: 17,
   HIT_MISS: 18
 };
+
+function switchTab(tab){
+  document.getElementById('tabBtnExp').classList.toggle('active', tab==='exp');
+  document.getElementById('tabBtnDist').classList.toggle('active', tab==='dist');
+  document.getElementById('panelExp').classList.toggle('active', tab==='exp');
+  document.getElementById('panelDist').classList.toggle('active', tab==='dist');
+}
 
 function parseIDDate(str){
   if(!str) return null;
@@ -344,8 +392,20 @@ function renderGroupCard(container, type, key, rows, dateStr, textBuilder, badge
       <a class="btn wa" target="_blank" href="${waLink(phone,text)}" data-linkfor="${key}">Kirim WA</a>
     </div>
     <details>
-      <summary>Lihat detail (${rows.length} unit)</summary>
-      ${rows.map(r=>`<div class="detail-row"><b>${r.nopol||r.container}</b> — ${r.deliveryName} — <span style="color:${r.hitMiss.toLowerCase()==='hit'?'var(--hit)':'var(--miss)'}">${r.hitMiss||'-'}</span>${r.issue?' — '+r.issue:''}</div>`).join('')}
+      <summary>Lihat detail data DOT (${rows.length} unit)</summary>
+      ${rows.map(r=>`
+        <div class="detail-row">
+          <b>${r.nopol||r.container}</b> — ${r.deliveryName} —
+          <span style="color:${r.hitMiss.toLowerCase()==='hit'?'var(--hit)':'var(--miss)'}">${r.hitMiss||'-'}</span>
+          ${r.issue?' — '+r.issue:''}
+          <div class="dot-detail">
+            <span>Kendaraan: <b>${r.vehicle||'-'}</b></span>
+            <span>Ship Date: <b>${fmtDate(r.shipDate)}</b></span>
+            <span>ETA: <b>${fmtDate(r.receiptETA)}</b></span>
+            <span>Arrival: <b>${fmtDate(r.arrivalDate)}</b></span>
+            <span>Receipt Date: <b>${fmtDate(r.receiptDate)}</b></span>
+          </div>
+        </div>`).join('')}
     </details>
   `;
 
@@ -392,9 +452,12 @@ async function loadReport(){
       nopol: r[COL.NOPOL],
       container: r[COL.CONTAINER],
       expedisi: expedisi || 'TANPA EKSPEDISI',
+      vehicle: r[COL.VEHICLE],
       deliveryName: (r[COL.DELIVERY_NAME]||'').trim(),
+      shipDate: parseIDDate(r[COL.SHIP_DATE]),
       receiptETA: parseIDDate(r[COL.RECEIPT_ETA]),
       arrivalDate: parseIDDate(r[COL.ARRIVAL_DATE]),
+      receiptDate: parseIDDate(r[COL.RECEIPT_DATE]),
       issue: r[COL.ISSUE],
       hitMiss: (r[COL.HIT_MISS]||'').trim()
     });
