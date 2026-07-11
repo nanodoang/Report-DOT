@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Report DOT Harian - PT. UNIFAM</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  :root{
+    --bg:#0f1419;
+    --panel:#171d26;
+    --panel2:#1e2530;
+    --border:#2a3340;
+    --text:#e8edf2;
+    --muted:#8a97a8;
+    --hit:#2ecc71;
+    --miss:#e74c3c;
+    --accent:#3b82f6;
+    --radius:12px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    padding-bottom:60px;
+  }
+  header{
+    padding:16px;
+    background:var(--panel);
+    border-bottom:1px solid var(--border);
+    position:sticky;
+    top:0;
+    z-index:10;
+  }
+  header h1{
+    font-size:17px;
+    margin:0 0 10px;
+    font-weight:700;
+  }
+  .datebar{
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  .datebar input[type=date]{
+    background:var(--panel2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:8px 10px;
+    border-radius:8px;
+    font-size:14px;
+    flex:1;
+  }
+  .datebar button{
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    padding:9px 14px;
+    border-radius:8px;
+    font-size:14px;
+    font-weight:600;
+  }
+  main{padding:14px;}
+  .status{color:var(--muted);font-size:13px;margin:8px 0 16px;text-align:center;}
+
+  .overall{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:8px;
+    margin-bottom:20px;
+  }
+  .stat{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:12px 8px;
+    text-align:center;
+  }
+  .stat .num{font-size:20px;font-weight:800;}
+  .stat .label{font-size:11px;color:var(--muted);margin-top:2px;}
+  .stat.hit .num{color:var(--hit);}
+  .stat.miss .num{color:var(--miss);}
+  .stat.pct .num{color:var(--accent);}
+
+  .section-title{
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    color:var(--muted);
+    margin:22px 0 10px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+
+  .card{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:14px;
+    margin-bottom:10px;
+  }
+  .card-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:10px;
+  }
+  .card-title{font-weight:700;font-size:15px;}
+  .card-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+  .mini-stats{
+    display:flex;
+    gap:10px;
+    font-size:12px;
+    margin-top:8px;
+    color:var(--muted);
+  }
+  .mini-stats b{color:var(--text);}
+  .pctbadge{
+    font-size:13px;
+    font-weight:800;
+    padding:3px 9px;
+    border-radius:20px;
+    white-space:nowrap;
+  }
+  .pctbadge.good{background:rgba(46,204,113,.15);color:var(--hit);}
+  .pctbadge.bad{background:rgba(231,76,60,.15);color:var(--miss);}
+
+  .card-actions{
+    display:flex;
+    gap:8px;
+    margin-top:12px;
+  }
+  .btn{
+    flex:1;
+    text-align:center;
+    padding:9px;
+    border-radius:8px;
+    font-size:13px;
+    font-weight:600;
+    border:1px solid var(--border);
+    background:var(--panel2);
+    color:var(--text);
+    text-decoration:none;
+    display:block;
+  }
+  .btn.wa{
+    background:#25D366;
+    color:#04250f;
+    border:none;
+  }
+  .phone-input{
+    width:100%;
+    background:var(--panel2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:8px 10px;
+    border-radius:8px;
+    font-size:13px;
+    margin-top:8px;
+  }
+  details{margin-top:10px;}
+  summary{font-size:12px;color:var(--muted);cursor:pointer;}
+  .detail-row{
+    font-size:12px;
+    padding:6px 0;
+    border-top:1px solid var(--border);
+    color:var(--muted);
+  }
+  .detail-row b{color:var(--text);}
+  .empty{
+    text-align:center;
+    color:var(--muted);
+    padding:30px 0;
+    font-size:13px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📊 Report Delivery On Time</h1>
+  <div class="datebar">
+    <input type="date" id="reportDate">
+    <button onclick="loadReport()">Refresh</button>
+  </div>
+</header>
+
+<main>
+  <div class="status" id="status">Memuat data...</div>
+
+  <div class="overall" id="overallStats" style="display:none;">
+    <div class="stat hit"><div class="num" id="ovHit">0</div><div class="label">HIT</div></div>
+    <div class="stat miss"><div class="num" id="ovMiss">0</div><div class="label">MISS</div></div>
+    <div class="stat"><div class="num" id="ovTotal">0</div><div class="label">TOTAL</div></div>
+    <div class="stat pct"><div class="num" id="ovPct">0%</div><div class="label">OTD</div></div>
+  </div>
+
+  <div class="section-title">📦 Per Ekspedisi (kirim ke admin ekspedisi)</div>
+  <div id="expedisiList"></div>
+
+  <div class="section-title">🏢 Per Distributor (info armada sudah tiba)</div>
+  <div id="distributorList"></div>
+</main>
+
+<script>
+const SHEET_ID = '1wN__DEfwIiwNjx35LtWtqyF9QC6lRq-PWYyjF1UnqxQ';
+const GID = '934115720'; // tab "dot 2026"
+const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
+
+// baris header ada di row 8 spreadsheet -> index 7 di array (0-based)
+const HEADER_ROW_INDEX = 7;
+const DATA_START_INDEX = 8;
+
+// index kolom absolut (A=0, B=1, ... G=6, H=7, I=8, J=9, K=10, L=11, M=12, N=13, O=14, P=15, Q=16, R=17, S=18)
+const COL = {
+  NOPOL: 6,
+  CONTAINER: 7,
+  EXPEDISI: 8,
+  VEHICLE: 9,
+  DELIVERY_NAME: 10,
+  SHIP_DATE: 11,
+  SHOW_ETA: 12,
+  RECEIPT_ETA: 13,
+  ARRIVAL_DATE: 14,
+  RECEIPT_DATE: 15,
+  KETERANGAN: 16,
+  ISSUE: 17,
+  HIT_MISS: 18
+};
+
+function parseIDDate(str){
+  if(!str) return null;
+  str = str.toString().trim();
+  const m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(!m) return null;
+  return new Date(parseInt(m[3]), parseInt(m[2])-1, parseInt(m[1]));
+}
+
+function sameDate(a,b){
+  if(!a||!b) return false;
+  return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+}
+
+function fmtDate(d){
+  if(!d) return '-';
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  return `${dd}/${mm}/${d.getFullYear()}`;
+}
+
+function extractDistributor(name){
+  if(!name) return 'TANPA NAMA';
+  return name.split(' - ')[0].trim();
+}
+function extractDestination(name){
+  if(!name) return '';
+  const parts = name.split(' - ');
+  if(parts.length<2) return '';
+  return parts[1].replace(/\(.*\)/,'').trim();
+}
+
+function summarize(rows){
+  const total = rows.length;
+  const hit = rows.filter(r=>r.hitMiss.toLowerCase()==='hit').length;
+  const miss = rows.filter(r=>r.hitMiss.toLowerCase()==='miss').length;
+  const pct = total>0 ? Math.round((hit/total)*1000)/10 : 0;
+  return {hit,miss,total,pct};
+}
+
+function buildExpedisiText(name, rows, dateStr){
+  const s = summarize(rows);
+  let t = `📊 *MONITORING DOT - ${name}*\nEstimasi sampai: ${dateStr}\n\n`;
+  t += `✅ Hit: ${s.hit} | ❌ Miss: ${s.miss} | 📦 Total: ${s.total} | 📈 OTD: ${s.pct}%\n`;
+  const miss = rows.filter(r=>r.hitMiss.toLowerCase()==='miss');
+  if(miss.length){
+    t += `\n*Detail Miss:*\n`;
+    miss.forEach(r=>{
+      t += `- ${r.nopol||r.container} | ${r.deliveryName}${r.issue?' | Issue: '+r.issue:''}\n`;
+    });
+  }
+  return t.trim();
+}
+
+function buildDistributorText(name, rows, dateStr){
+  const hit = rows.filter(r=>r.hitMiss.toLowerCase()==='hit');
+  const miss = rows.filter(r=>r.hitMiss.toLowerCase()==='miss');
+  let t = `🚚 *INFO ARMADA TIBA*\n*${name}*\nTanggal: ${dateStr}\n\n`;
+  if(hit.length===0){
+    t += 'Belum ada armada tiba untuk tanggal ini.';
+    return t;
+  }
+  t += `Armada berikut sudah *TIBA*:\n`;
+  hit.forEach(r=>{
+    const dest = extractDestination(r.deliveryName);
+    t += `- ${r.nopol||r.container}${dest?' → '+dest:''} (tiba ${fmtDate(r.arrivalDate)})\n`;
+  });
+  if(miss.length){
+    t += `\nMasih dalam perjalanan / delay:\n`;
+    miss.forEach(r=>{
+      t += `- ${r.nopol||r.container}${r.issue?' ('+r.issue+')':''}\n`;
+    });
+  }
+  return t.trim();
+}
+
+function getPhone(type, key){
+  return localStorage.getItem(`wa_${type}_${key}`) || '';
+}
+function setPhone(type, key, val){
+  localStorage.setItem(`wa_${type}_${key}`, val);
+}
+
+function waLink(phone, text){
+  const clean = (phone||'').replace(/[^0-9]/g,'');
+  const base = clean ? `https://wa.me/${clean}` : `https://wa.me/`;
+  return `${base}?text=${encodeURIComponent(text)}`;
+}
+
+function renderGroupCard(container, type, key, rows, dateStr, textBuilder, badgeExtra){
+  const s = summarize(rows);
+  const text = textBuilder(key, rows, dateStr);
+  const phone = getPhone(type, key);
+
+  const div = document.createElement('div');
+  div.className = 'card';
+  div.innerHTML = `
+    <div class="card-top">
+      <div>
+        <div class="card-title">${key}</div>
+        <div class="card-sub">${badgeExtra||''}</div>
+      </div>
+      <div class="pctbadge ${s.pct>=93?'good':'bad'}">${s.pct}%</div>
+    </div>
+    <div class="mini-stats">
+      <span>✅ Hit <b>${s.hit}</b></span>
+      <span>❌ Miss <b>${s.miss}</b></span>
+      <span>📦 Total <b>${s.total}</b></span>
+    </div>
+    <input class="phone-input" type="tel" placeholder="No. WA (628xxxxxxxxxx)" value="${phone}" data-type="${type}" data-key="${key.replace(/"/g,'&quot;')}">
+    <div class="card-actions">
+      <a class="btn wa" target="_blank" href="${waLink(phone,text)}" data-linkfor="${key}">Kirim WA</a>
+    </div>
+    <details>
+      <summary>Lihat detail (${rows.length} unit)</summary>
+      ${rows.map(r=>`<div class="detail-row"><b>${r.nopol||r.container}</b> — ${r.deliveryName} — <span style="color:${r.hitMiss.toLowerCase()==='hit'?'var(--hit)':'var(--miss)'}">${r.hitMiss||'-'}</span>${r.issue?' — '+r.issue:''}</div>`).join('')}
+    </details>
+  `;
+
+  const input = div.querySelector('.phone-input');
+  const link = div.querySelector('.btn.wa');
+  input.addEventListener('input', ()=>{
+    setPhone(type, key, input.value);
+    link.href = waLink(input.value, text);
+  });
+
+  container.appendChild(div);
+}
+
+async function loadReport(){
+  const statusEl = document.getElementById('status');
+  const dateInput = document.getElementById('reportDate');
+  const targetDate = dateInput.value ? new Date(dateInput.value+'T00:00:00') : new Date();
+  const dateStrDisplay = fmtDate(targetDate);
+
+  statusEl.textContent = 'Memuat data dari sheet...';
+  document.getElementById('overallStats').style.display = 'none';
+  document.getElementById('expedisiList').innerHTML = '';
+  document.getElementById('distributorList').innerHTML = '';
+
+  let csvText;
+  try{
+    const res = await fetch(CSV_URL);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    csvText = await res.text();
+  }catch(err){
+    statusEl.textContent = '⚠️ Gagal ambil data. Pastikan sheet di-share "Anyone with the link". (' + err.message + ')';
+    return;
+  }
+
+  const parsed = Papa.parse(csvText, {skipEmptyLines:false});
+  const allRows = parsed.data.slice(DATA_START_INDEX);
+
+  const rows = [];
+  allRows.forEach(r=>{
+    const nopol = r[COL.NOPOL];
+    const expedisi = (r[COL.EXPEDISI]||'').trim();
+    if(!nopol && !expedisi) return;
+    rows.push({
+      nopol: r[COL.NOPOL],
+      container: r[COL.CONTAINER],
+      expedisi: expedisi || 'TANPA EKSPEDISI',
+      deliveryName: (r[COL.DELIVERY_NAME]||'').trim(),
+      receiptETA: parseIDDate(r[COL.RECEIPT_ETA]),
+      arrivalDate: parseIDDate(r[COL.ARRIVAL_DATE]),
+      issue: r[COL.ISSUE],
+      hitMiss: (r[COL.HIT_MISS]||'').trim()
+    });
+  });
+
+  const todayRows = rows.filter(r=>sameDate(r.receiptETA, targetDate));
+
+  if(todayRows.length===0){
+    statusEl.textContent = `Tidak ada data dengan Receipt ETA = ${dateStrDisplay}`;
+    return;
+  }
+
+  statusEl.textContent = `Menampilkan ${todayRows.length} pengiriman dengan estimasi sampai ${dateStrDisplay}`;
+
+  const overall = summarize(todayRows);
+  document.getElementById('overallStats').style.display = 'grid';
+  document.getElementById('ovHit').textContent = overall.hit;
+  document.getElementById('ovMiss').textContent = overall.miss;
+  document.getElementById('ovTotal').textContent = overall.total;
+  document.getElementById('ovPct').textContent = overall.pct + '%';
+
+  const byExpedisi = {};
+  todayRows.forEach(r=>{
+    (byExpedisi[r.expedisi] = byExpedisi[r.expedisi]||[]).push(r);
+  });
+  const expedisiContainer = document.getElementById('expedisiList');
+  if(Object.keys(byExpedisi).length===0){
+    expedisiContainer.innerHTML = '<div class="empty">Tidak ada data</div>';
+  } else {
+    Object.keys(byExpedisi).sort().forEach(key=>{
+      renderGroupCard(expedisiContainer, 'exp', key, byExpedisi[key], dateStrDisplay, buildExpedisiText);
+    });
+  }
+
+  const byDistributor = {};
+  todayRows.forEach(r=>{
+    const d = extractDistributor(r.deliveryName);
+    (byDistributor[d] = byDistributor[d]||[]).push(r);
+  });
+  const distContainer = document.getElementById('distributorList');
+  if(Object.keys(byDistributor).length===0){
+    distContainer.innerHTML = '<div class="empty">Tidak ada data</div>';
+  } else {
+    Object.keys(byDistributor).sort().forEach(key=>{
+      renderGroupCard(distContainer, 'dist', key, byDistributor[key], dateStrDisplay, buildDistributorText);
+    });
+  }
+}
+
+document.getElementById('reportDate').valueAsDate = new Date();
+loadReport();
+</script>
+</body>
+</html>
