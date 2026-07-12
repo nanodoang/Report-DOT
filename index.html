@@ -590,8 +590,7 @@ function dedupeShipments(rows, identifierField){
   rows.forEach(r=>{
     const identifier = (r[identifierField]||'').toString().trim().toUpperCase();
     const dist = (r.distributorName || extractDistributor(r.deliveryName)).toUpperCase();
-    const dest = extractDestination(r.deliveryName).toUpperCase();
-    const key = identifier + '|' + dist + '|' + dest;
+    const key = identifier + '|' + dist;
     if(seen.has(key)) return;
     seen.add(key);
     result.push(r);
@@ -608,8 +607,7 @@ function buildKonfirmasiText(name, rows, dateStr){
   if(kontainerRows.length){
     t += `🚢 *Mohon info TANGGAL SANDAR kapal untuk kontainer berikut* (untuk keperluan monitoring DOT):\n\n`;
     kontainerRows.forEach((r,i)=>{
-      const dest = extractDestination(r.deliveryName);
-      t += `${i+1}. No. Kontainer: *${r.container||'-'}* — ${(r.distributorName || extractDistributor(r.deliveryName))}${dest?(' ('+dest+')'):''}\n   ETA jadwal: ${fmtDate(r.receiptETA)}\n`;
+      t += `${i+1}. No. Kontainer: *${r.container||'-'}* — ${(r.distributorName || extractDistributor(r.deliveryName))}\n   ETA jadwal: ${fmtDate(r.receiptETA)}\n`;
     });
     t += `\nMohon dibalas dengan format:\n_No. Kontainer - Tanggal Sandar_\n`;
   }
@@ -617,8 +615,7 @@ function buildKonfirmasiText(name, rows, dateStr){
   if(truckRows.length){
     t += `${kontainerRows.length?'\n':''}🚛 *Mohon info status unit berikut, sudah sampai tujuan atau masih perjalanan:*\n\n`;
     truckRows.forEach((r,i)=>{
-      const dest = extractDestination(r.deliveryName);
-      t += `${i+1}. Nopol: *${r.nopol||'-'}* — ${(r.distributorName || extractDistributor(r.deliveryName))}${dest?(' ('+dest+')'):''}\n`;
+      t += `${i+1}. Nopol: *${r.nopol||'-'}* — ${(r.distributorName || extractDistributor(r.deliveryName))}\n`;
     });
   }
 
