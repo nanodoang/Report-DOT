@@ -281,7 +281,7 @@
   </div>
 
   <div class="tabs">
-    <button class="tab-btn active" id="tabBtnExp" onclick="switchTab('exp')">📦 Ekspedisi</button>
+    <button class="tab-btn active" id="tabBtnExp" onclick="switchTab('exp')">📦 Konfirmasi Ekspedisi</button>
     <button class="tab-btn" id="tabBtnDist" onclick="switchTab('dist')">🏢 Distributor</button>
     <button class="tab-btn" id="tabBtnAlert" onclick="switchTab('alert')">🔔 Cek Sandar<span class="badge-count" id="alertBadge" style="display:none;">0</span></button>
   </div>
@@ -299,16 +299,14 @@
 </main>
 
 <script>
-const SHEET_ID = '1wN__DEfwIiwNjx35LtWtqyF9QC6lRq-PWYyjF1UnqxQ';
-const GID = '934115720'; // tab "dot 2026"
+const SHEET_ID = '1Jz-0kcWJh1ltcqLy_QfL7he9dauXUf4gonOXdwhMfrc';
+const GID = '1495795913'; // tab "Plan Delivery 2026"
 const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
 
-// Sheet "pesana armada" > tab "Konfirmasi Armada" — sumber ETD/ETA kontainer dari konfirmasi ekspedisi
+// header di row 1, data mulai row 2
 const SHEET_ID2 = '1eqhRDFXQysByjjKSkYziJ9zmubGWm2uZCWZpPaARho8';
 const GID2 = '1963608809'; // tab "Konfirmasi Armada"
 const CSV_URL2 = `https://docs.google.com/spreadsheets/d/${SHEET_ID2}/export?format=csv&gid=${GID2}`;
-
-// header di row 1, data mulai row 2
 const COL2 = {
   NO_ORDER: 1,
   EKSPEDISI: 2,
@@ -323,6 +321,67 @@ const COL2 = {
 function normalizeContainer(str){
   return (str||'').toString().replace(/\s+/g,'').toUpperCase();
 }
+
+// ==== Sheet konfirmasi distributor: kontainer & truck "belum bongkar" ====
+const SHEET_ID4 = '1zwa_DGFf98Oz4fCkeDYG9_Z5P-h943uDOE5vE4Cy_K8';
+const GID_KONTAINER_BONGKAR = '2146963194';
+const GID_TRUCK_BONGKAR = '332221148';
+const CSV_URL_KONTAINER_BONGKAR = `https://docs.google.com/spreadsheets/d/${SHEET_ID4}/export?format=csv&gid=${GID_KONTAINER_BONGKAR}`;
+const CSV_URL_TRUCK_BONGKAR = `https://docs.google.com/spreadsheets/d/${SHEET_ID4}/export?format=csv&gid=${GID_TRUCK_BONGKAR}`;
+
+// Kontainer: A BULAN,B TglKirim,C DESTINATION,D NO CONTAINER,E EXPEDISI,F SANDAR,G KET.DOORING,H DOORING,I STANDBY,...
+const COL_KONTAINER_BONGKAR = { DESTINATION: 2, IDENTIFIER: 3, EXPEDISI: 4, ARRIVAL: 5, STATUS: 6, BONGKAR_DATE: 7 };
+// Truck: A BULAN,B TglKirim,C DESTINATION,D PLAT NO MOBIL,E EXP,F TGL TIBA GUDANG,G JAM TIBA,H KET.BONGKAR,I TGL BONGKAR,...
+const COL_TRUCK_BONGKAR = { DESTINATION: 2, IDENTIFIER: 3, EXPEDISI: 4, ARRIVAL: 5, STATUS: 7, BONGKAR_DATE: 8 };
+
+const BULAN_ID = {januari:0,februari:1,maret:2,april:3,mei:4,juni:5,juli:6,agustus:7,september:8,oktober:9,november:10,desember:11};
+function parseIndonesianDate(str){
+  if(!str) return null;
+  str = str.toString().trim().toLowerCase();
+  const m = str.match(/^(\d{1,2})\s+([a-z]+)\s+(\d{4})$/);
+  if(!m) return null;
+  const month = BULAN_ID[m[2]];
+  if(month===undefined) return null;
+  return new Date(parseInt(m[3]), month, parseInt(m[1]));
+}
+
+async function fetchBongkarSheet(url, col, type){
+  const rows = [];
+  try{
+    const res = await fetch(url);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const csvText = await res.text();
+    const parsed = Papa.parse(csvText, {skipEmptyLines:false});
+    const dataRows = parsed.data.slice(1); // skip header row 1
+    dataRows.forEach(r=>{
+      const identifier = (r[col.IDENTIFIER]||'').toString().trim();
+      const destination = (r[col.DESTINATION]||'').toString().trim();
+      if(!identifier && !destination) return;
+      const status = (r[col.STATUS]||'').toString().trim().toUpperCase();
+      if(status === 'SUDAH BONGKAR') return; // sudah selesai, skip
+      rows.push({
+        type: type,
+        destination: destination,
+        identifier: identifier,
+        expedisi: (r[col.EXPEDISI]||'').toString().trim() || 'TANPA EKSPEDISI',
+        arrivalDate: parseIndonesianDate(r[col.ARRIVAL]),
+        status: status
+      });
+    });
+  }catch(err){
+    console.warn('Gagal ambil data bongkar ('+type+'):', err.message);
+  }
+  return rows;
+}
+
+async function fetchDistributorPending(){
+  const [kontainerRows, truckRows] = await Promise.all([
+    fetchBongkarSheet(CSV_URL_KONTAINER_BONGKAR, COL_KONTAINER_BONGKAR, 'kontainer'),
+    fetchBongkarSheet(CSV_URL_TRUCK_BONGKAR, COL_TRUCK_BONGKAR, 'truck')
+  ]);
+  return kontainerRows.concat(truckRows);
+}
+
 
 async function fetchKonfirmasiArmada(){
   const map = {};
@@ -361,25 +420,21 @@ function parseIDDateFlexible(str){
   return null;
 }
 
-// baris header ada di row 8 spreadsheet -> index 7 di array (0-based)
-const HEADER_ROW_INDEX = 7;
-const DATA_START_INDEX = 8;
+// header di row 1 spreadsheet -> index 0 di array (0-based), data mulai row 2
+const HEADER_ROW_INDEX = 0;
+const DATA_START_INDEX = 1;
 
-// index kolom absolut (A=0, B=1, ... G=6, H=7, I=8, J=9, K=10, L=11, M=12, N=13, O=14, P=15, Q=16, R=17, S=18)
+// index kolom absolut (A=0, B=1, C=2, D=3, E=4, F=5, G=6, H=7, I=8, J=9, K=10, L=11, M=12, N=13, O=14, P=15)
 const COL = {
-  NOPOL: 6,
-  CONTAINER: 7,
-  EXPEDISI: 8,
-  VEHICLE: 9,
-  DELIVERY_NAME: 10,
-  SHIP_DATE: 11,
-  SHOW_ETA: 12,
-  RECEIPT_ETA: 13,
-  ARRIVAL_DATE: 14,
-  RECEIPT_DATE: 15,
-  KETERANGAN: 16,
-  ISSUE: 17,
-  HIT_MISS: 18
+  DISTRIBUTOR_NAME: 1,
+  DELIVERY_NAME: 3,
+  SHIP_DATE: 6,
+  ARRIVAL_DATE: 7,
+  RECEIPT_DATE: 8,
+  RECEIPT_ETA: 9,
+  CONTAINER: 11,
+  NOPOL: 12,
+  EXPEDISI: 13
 };
 
 function switchTab(tab){
@@ -391,8 +446,8 @@ function switchTab(tab){
   document.getElementById('panelAlert').classList.toggle('active', tab==='alert');
 }
 
-function isKontainer(vehicleType){
-  return (vehicleType||'').toLowerCase().includes('kontainer');
+function isKontainer(r){
+  return !!(r && r.container && r.container.toString().trim());
 }
 
 function daysBetween(a,b){
@@ -407,7 +462,7 @@ function renderAlertList(allRows){
 
   const now = new Date();
   const flagged = allRows.filter(r=>{
-    if(!isKontainer(r.vehicle)) return false;
+    if(!isKontainer(r)) return false;
     if(!r.receiptETA) return false;
     if(r.arrivalDate) return false; // sudah ada tanggal arrival = dianggap sudah update
     return r.receiptETA < now;
@@ -529,8 +584,8 @@ function buildExpedisiText(name, rows, dateStr){
 }
 
 function buildKonfirmasiText(name, rows, dateStr){
-  const kontainerRows = rows.filter(r=>isKontainer(r.vehicle));
-  const truckRows = rows.filter(r=>!isKontainer(r.vehicle));
+  const kontainerRows = rows.filter(r=>isKontainer(r));
+  const truckRows = rows.filter(r=>!isKontainer(r));
 
   let t = `📋 *KONFIRMASI STATUS PENGIRIMAN*\n*${name}*\nEstimasi sampai: ${dateStr}\n\n`;
 
@@ -538,7 +593,7 @@ function buildKonfirmasiText(name, rows, dateStr){
     t += `🚢 *Mohon info TANGGAL SANDAR kapal untuk kontainer berikut* (untuk keperluan monitoring DOT):\n\n`;
     kontainerRows.forEach((r,i)=>{
       const dest = extractDestination(r.deliveryName);
-      t += `${i+1}. No. Kontainer: *${r.container||'-'}* — ${extractDistributor(r.deliveryName)}${dest?(' ('+dest+')'):''}\n   ETA jadwal: ${fmtDate(r.receiptETA)}\n`;
+      t += `${i+1}. No. Kontainer: *${r.container||'-'}* — ${(r.distributorName || extractDistributor(r.deliveryName))}${dest?(' ('+dest+')'):''}\n   ETA jadwal: ${fmtDate(r.receiptETA)}\n`;
     });
     t += `\nMohon dibalas dengan format:\n_No. Kontainer - Tanggal Sandar_\n`;
   }
@@ -547,7 +602,7 @@ function buildKonfirmasiText(name, rows, dateStr){
     t += `${kontainerRows.length?'\n':''}🚛 *Mohon info status unit berikut, sudah sampai tujuan atau masih perjalanan:*\n\n`;
     truckRows.forEach((r,i)=>{
       const dest = extractDestination(r.deliveryName);
-      t += `${i+1}. Nopol: *${r.nopol||'-'}* — ${extractDistributor(r.deliveryName)}${dest?(' ('+dest+')'):''}\n`;
+      t += `${i+1}. Nopol: *${r.nopol||'-'}* — ${(r.distributorName || extractDistributor(r.deliveryName))}${dest?(' ('+dest+')'):''}\n`;
     });
   }
 
@@ -555,26 +610,55 @@ function buildKonfirmasiText(name, rows, dateStr){
   return t.trim();
 }
 
-function buildDistributorText(name, rows, dateStr){
-  const hit = rows.filter(r=>r.hitMiss.toLowerCase()==='hit');
-  const miss = rows.filter(r=>r.hitMiss.toLowerCase()==='miss');
-  let t = `🚚 *INFO ARMADA TIBA*\n*${name}*\nTanggal: ${dateStr}\n\n`;
-  if(hit.length===0){
-    t += 'Belum ada armada tiba untuk tanggal ini.';
-    return t;
-  }
-  t += `Armada berikut sudah *TIBA*:\n`;
-  hit.forEach(r=>{
-    const dest = extractDestination(r.deliveryName);
-    t += `- ${r.nopol||r.container}${dest?' → '+dest:''} (tiba ${fmtDate(r.arrivalDate)})\n`;
+function buildDistributorPendingText(distributorName, items){
+  let t = `🚚 *INFO ARMADA TIBA - MOHON SEGERA DIBONGKAR*\n*${distributorName}*\n\n`;
+  items.forEach((it,i)=>{
+    const days = it.arrivalDate ? daysBetween(new Date(it.arrivalDate), new Date()) : null;
+    const label = it.type==='kontainer' ? 'No. Kontainer' : 'Nopol';
+    t += `${i+1}. ${label}: *${it.identifier}* (${it.expedisi})\n   ${it.type==='kontainer'?'Sandar':'Tiba gudang'}: ${fmtDate(it.arrivalDate)}${days!==null?` (${days} hari lalu)`:''}\n`;
   });
-  if(miss.length){
-    t += `\nMasih dalam perjalanan / delay:\n`;
-    miss.forEach(r=>{
-      t += `- ${r.nopol||r.container}${r.issue?' ('+r.issue+')':''}\n`;
-    });
-  }
+  t += `\nMohon segera dijadwalkan bongkar, terima kasih 🙏`;
   return t.trim();
+}
+
+function renderDistributorPendingCard(container, distributorName, items){
+  const phone = getPhone('dist', distributorName);
+  const text = buildDistributorPendingText(distributorName, items);
+  const kontainerCount = items.filter(it=>it.type==='kontainer').length;
+  const truckCount = items.filter(it=>it.type==='truck').length;
+
+  const div = document.createElement('div');
+  div.className = 'card';
+  div.innerHTML = `
+    <div class="card-top">
+      <div>
+        <div class="card-title">${distributorName}</div>
+        <div class="card-sub">🚢 ${kontainerCount} kontainer &nbsp; 🚛 ${truckCount} truk — belum bongkar</div>
+      </div>
+    </div>
+    <input class="phone-input" type="tel" placeholder="No. WA (628xxxxxxxxxx)" value="${phone}" data-type="dist" data-key="${distributorName.replace(/"/g,'&quot;')}">
+    <div class="card-actions">
+      <a class="btn wa" style="flex:1;" target="_blank" href="${waLink(phone,text)}">Kirim Laporan</a>
+    </div>
+    <details>
+      <summary>Lihat detail (${items.length} unit)</summary>
+      ${items.map(it=>{
+        const days = it.arrivalDate ? daysBetween(new Date(it.arrivalDate), new Date()) : null;
+        return `<div class="detail-row">
+          <b>${it.identifier}</b> — ${it.expedisi} — ${it.type==='kontainer'?'Sandar':'Tiba'}: ${fmtDate(it.arrivalDate)}${days!==null?` (${days} hari lalu)`:''}
+        </div>`;
+      }).join('')}
+    </details>
+  `;
+
+  const input = div.querySelector('.phone-input');
+  const link = div.querySelector('.btn.wa');
+  input.addEventListener('input', ()=>{
+    setPhone('dist', distributorName, input.value);
+    link.href = waLink(input.value, text);
+  });
+
+  container.appendChild(div);
 }
 
 function getPhone(type, key){
@@ -613,7 +697,7 @@ function renderGroupCard(container, type, key, rows, dateStr, textBuilder, badge
     </div>
     <input class="phone-input" type="tel" placeholder="No. WA (628xxxxxxxxxx)" value="${phone}" data-type="${type}" data-key="${key.replace(/"/g,'&quot;')}">
     <div class="card-actions">
-      <a class="btn wa" target="_blank" href="${waLink(phone,text)}" data-linkfor="${key}">Kirim Laporan</a>
+      ${type==='exp' && konfirmasiText ? '' : `<a class="btn wa" target="_blank" href="${waLink(phone,text)}" data-linkfor="${key}">Kirim Laporan</a>`}
       ${konfirmasiText ? `<a class="btn wa-konfirmasi" target="_blank" href="${waLink(phone,konfirmasiText)}" data-linkfor-konfirmasi="${key}">Minta Konfirmasi</a>` : ''}
     </div>
     <details>
@@ -642,7 +726,7 @@ function renderGroupCard(container, type, key, rows, dateStr, textBuilder, badge
   const link = div.querySelector('.btn.wa');
   input.addEventListener('input', ()=>{
     setPhone(type, key, input.value);
-    link.href = waLink(input.value, text);
+    if(link) link.href = waLink(input.value, text);
     const linkK = div.querySelector('.wa-konfirmasi');
     if(linkK) linkK.href = waLink(input.value, konfirmasiText);
   });
@@ -663,13 +747,16 @@ async function loadReport(){
 
   let csvText;
   let konfirmasiMap = {};
+  let distributorPendingRows = [];
   try{
-    const [dotRes, konfMap] = await Promise.all([
+    const [dotRes, konfMap, pendingRows] = await Promise.all([
       fetch(CSV_URL).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); }),
-      fetchKonfirmasiArmada()
+      fetchKonfirmasiArmada(),
+      fetchDistributorPending()
     ]);
     csvText = dotRes;
     konfirmasiMap = konfMap;
+    distributorPendingRows = pendingRows;
   }catch(err){
     statusEl.textContent = '⚠️ Gagal ambil data. Pastikan sheet di-share "Anyone with the link". (' + err.message + ')';
     return;
@@ -681,22 +768,29 @@ async function loadReport(){
   const rows = [];
   allRows.forEach(r=>{
     const nopol = r[COL.NOPOL];
+    const container = r[COL.CONTAINER];
     const expedisi = (r[COL.EXPEDISI]||'').trim();
-    if(!nopol && !expedisi) return;
-    const containerNorm = normalizeContainer(r[COL.CONTAINER]);
+    if(!nopol && !container && !expedisi) return;
+    const containerNorm = normalizeContainer(container);
     const konf = containerNorm ? konfirmasiMap[containerNorm] : null;
+    const receiptETA = parseIDDate(r[COL.RECEIPT_ETA]);
+    const receiptDate = parseIDDate(r[COL.RECEIPT_DATE]);
+    let hitMiss = '';
+    if(receiptDate && receiptETA){
+      hitMiss = receiptDate <= receiptETA ? 'Hit' : 'Miss';
+    }
     rows.push({
-      nopol: r[COL.NOPOL],
-      container: r[COL.CONTAINER],
+      nopol: nopol,
+      container: container,
       expedisi: expedisi || 'TANPA EKSPEDISI',
-      vehicle: r[COL.VEHICLE],
+      distributorName: (r[COL.DISTRIBUTOR_NAME]||'').trim(),
       deliveryName: (r[COL.DELIVERY_NAME]||'').trim(),
       shipDate: parseIDDate(r[COL.SHIP_DATE]),
-      receiptETA: parseIDDate(r[COL.RECEIPT_ETA]),
+      receiptETA: receiptETA,
       arrivalDate: parseIDDate(r[COL.ARRIVAL_DATE]),
-      receiptDate: parseIDDate(r[COL.RECEIPT_DATE]),
-      issue: r[COL.ISSUE],
-      hitMiss: (r[COL.HIT_MISS]||'').trim(),
+      receiptDate: receiptDate,
+      issue: '',
+      hitMiss: hitMiss,
       konfirmasiETD: konf ? konf.etd : null,
       konfirmasiETA: konf ? konf.eta : null,
       konfirmasiNoOrder: konf ? konf.noOrder : null
@@ -706,6 +800,34 @@ async function loadReport(){
   const todayRows = rows.filter(r=>sameDate(r.receiptETA, targetDate));
 
   renderAlertList(rows);
+
+  // Tab Distributor: independen dari tanggal, tampilkan SEMUA yang belum bongkar saat ini
+  const byDistributorPending = {};
+  distributorPendingRows.forEach(it=>{
+    const d = extractDistributor(it.destination);
+    (byDistributorPending[d] = byDistributorPending[d]||[]).push(it);
+  });
+  const distContainer = document.getElementById('distributorList');
+  if(Object.keys(byDistributorPending).length===0){
+    distContainer.innerHTML = '<div class="empty">✅ Tidak ada kiriman yang belum bongkar</div>';
+  } else {
+    Object.keys(byDistributorPending).sort().forEach(key=>{
+      renderDistributorPendingCard(distContainer, key, byDistributorPending[key]);
+    });
+  }
+
+  const byExpedisi = {};
+  todayRows.forEach(r=>{
+    (byExpedisi[r.expedisi] = byExpedisi[r.expedisi]||[]).push(r);
+  });
+  const expedisiContainer = document.getElementById('expedisiList');
+  if(Object.keys(byExpedisi).length===0){
+    expedisiContainer.innerHTML = '<div class="empty">Tidak ada data dengan Receipt ETA di tanggal ini</div>';
+  } else {
+    Object.keys(byExpedisi).sort().forEach(key=>{
+      renderGroupCard(expedisiContainer, 'exp', key, byExpedisi[key], dateStrDisplay, buildExpedisiText, null, buildKonfirmasiText);
+    });
+  }
 
   if(todayRows.length===0){
     statusEl.textContent = `Tidak ada data dengan Receipt ETA = ${dateStrDisplay}`;
@@ -720,33 +842,6 @@ async function loadReport(){
   document.getElementById('ovMiss').textContent = overall.miss;
   document.getElementById('ovTotal').textContent = overall.total;
   document.getElementById('ovPct').textContent = overall.pct + '%';
-
-  const byExpedisi = {};
-  todayRows.forEach(r=>{
-    (byExpedisi[r.expedisi] = byExpedisi[r.expedisi]||[]).push(r);
-  });
-  const expedisiContainer = document.getElementById('expedisiList');
-  if(Object.keys(byExpedisi).length===0){
-    expedisiContainer.innerHTML = '<div class="empty">Tidak ada data</div>';
-  } else {
-    Object.keys(byExpedisi).sort().forEach(key=>{
-      renderGroupCard(expedisiContainer, 'exp', key, byExpedisi[key], dateStrDisplay, buildExpedisiText, null, buildKonfirmasiText);
-    });
-  }
-
-  const byDistributor = {};
-  todayRows.forEach(r=>{
-    const d = extractDistributor(r.deliveryName);
-    (byDistributor[d] = byDistributor[d]||[]).push(r);
-  });
-  const distContainer = document.getElementById('distributorList');
-  if(Object.keys(byDistributor).length===0){
-    distContainer.innerHTML = '<div class="empty">Tidak ada data</div>';
-  } else {
-    Object.keys(byDistributor).sort().forEach(key=>{
-      renderGroupCard(distContainer, 'dist', key, byDistributor[key], dateStrDisplay, buildDistributorText);
-    });
-  }
 }
 
 document.getElementById('reportDate').valueAsDate = new Date();
