@@ -628,7 +628,8 @@ function buildDistributorPendingText(distributorName, items){
   items.forEach((it,i)=>{
     const days = it.arrivalDate ? daysBetween(new Date(it.arrivalDate), new Date()) : null;
     const label = it.type==='kontainer' ? 'No. Kontainer' : 'Nopol';
-    t += `${i+1}. ${label}: *${it.identifier}* (${it.expedisi})\n   ${it.type==='kontainer'?'Sandar':'Tiba gudang'}: ${fmtDate(it.arrivalDate)}${days!==null?` (${days} hari lalu)`:''}\n`;
+    const kota = extractDestination(it.destination) || it.destination || '';
+    t += `${i+1}. ${label}: *${it.identifier}*${kota?' — '+kota:''} (${it.expedisi})\n   ${it.type==='kontainer'?'Sandar':'Tiba gudang'}: ${fmtDate(it.arrivalDate)}${days!==null?` (${days} hari lalu)`:''}\n`;
   });
   t += `\nMohon segera dijadwalkan bongkar, terima kasih 🙏`;
   return t.trim();
@@ -657,8 +658,9 @@ function renderDistributorPendingCard(container, distributorName, items){
       <summary>Lihat detail (${items.length} unit)</summary>
       ${items.map(it=>{
         const days = it.arrivalDate ? daysBetween(new Date(it.arrivalDate), new Date()) : null;
+        const kota = extractDestination(it.destination) || it.destination || '';
         return `<div class="detail-row">
-          <b>${it.identifier}</b> — ${it.expedisi} — ${it.type==='kontainer'?'Sandar':'Tiba'}: ${fmtDate(it.arrivalDate)}${days!==null?` (${days} hari lalu)`:''}
+          <b>${it.identifier}</b>${kota?' — '+kota:''} — ${it.expedisi} — ${it.type==='kontainer'?'Sandar':'Tiba'}: ${fmtDate(it.arrivalDate)}${days!==null?` (${days} hari lalu)`:''}
         </div>`;
       }).join('')}
     </details>
