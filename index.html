@@ -301,12 +301,12 @@
 <script>
 const SHEET_ID = '1Jz-0kcWJh1ltcqLy_QfL7he9dauXUf4gonOXdwhMfrc';
 const GID = '1495795913'; // tab "Plan Delivery 2026"
-const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
+const CSV_URL = `https://docs.google.com/spreadsheets/d/e/2PACX-1vSGz9K1a7v-1BFLSWdCjrboAwAcg8w1fYK98pdGhdEHqj_q9hnqvRWjPdt1UubexOQ_IgOy7QGPS-3G/pub?gid=${GID}&single=true&output=csv`;
 
 // header di row 1, data mulai row 2
 const SHEET_ID2 = '1eqhRDFXQysByjjKSkYziJ9zmubGWm2uZCWZpPaARho8';
 const GID2 = '1963608809'; // tab "Konfirmasi Armada"
-const CSV_URL2 = `https://docs.google.com/spreadsheets/d/${SHEET_ID2}/export?format=csv&gid=${GID2}`;
+const CSV_URL2 = `https://docs.google.com/spreadsheets/d/e/2PACX-1vQWWl6xUcwoS3ym-dPPunI4XIWrZoi8VbeKDV-myqhTIdpsBGM7AgzXXWUFidZJTFjXgCyGANUR-vjf/pub?gid=${GID2}&single=true&output=csv`;
 const COL2 = {
   NO_ORDER: 1,
   EKSPEDISI: 2,
@@ -326,8 +326,8 @@ function normalizeContainer(str){
 const SHEET_ID4 = '1zwa_DGFf98Oz4fCkeDYG9_Z5P-h943uDOE5vE4Cy_K8';
 const GID_KONTAINER_BONGKAR = '2146963194';
 const GID_TRUCK_BONGKAR = '332221148';
-const CSV_URL_KONTAINER_BONGKAR = `https://docs.google.com/spreadsheets/d/${SHEET_ID4}/export?format=csv&gid=${GID_KONTAINER_BONGKAR}`;
-const CSV_URL_TRUCK_BONGKAR = `https://docs.google.com/spreadsheets/d/${SHEET_ID4}/export?format=csv&gid=${GID_TRUCK_BONGKAR}`;
+const CSV_URL_KONTAINER_BONGKAR = `https://docs.google.com/spreadsheets/d/e/2PACX-1vS5DYccCkQ-4CubMoR655MsH-DYNuwipMvTPSQ9zL9UBLMsuJkZWLyxWPc0X4y4tBQB1OQAUCSi07cr/pub?gid=${GID_KONTAINER_BONGKAR}&single=true&output=csv`;
+const CSV_URL_TRUCK_BONGKAR = `https://docs.google.com/spreadsheets/d/e/2PACX-1vS5DYccCkQ-4CubMoR655MsH-DYNuwipMvTPSQ9zL9UBLMsuJkZWLyxWPc0X4y4tBQB1OQAUCSi07cr/pub?gid=${GID_TRUCK_BONGKAR}&single=true&output=csv`;
 
 // Kontainer: A BULAN,B TglKirim,C DESTINATION,D NO CONTAINER,E EXPEDISI,F SANDAR,G KET.DOORING,H DOORING,I STANDBY,...
 const COL_KONTAINER_BONGKAR = { DESTINATION: 2, IDENTIFIER: 3, EXPEDISI: 4, ARRIVAL: 5, STATUS: 6, BONGKAR_DATE: 7 };
@@ -765,17 +765,20 @@ async function loadReport(){
   let konfirmasiMap = {};
   let distributorPendingRows = [];
   try{
-    const [dotRes, konfMap, pendingRows] = await Promise.all([
-      fetch(CSV_URL).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); }),
-      fetchKonfirmasiArmada(),
-      fetchDistributorPending()
-    ]);
-    csvText = dotRes;
-    konfirmasiMap = konfMap;
-    distributorPendingRows = pendingRows;
+    csvText = await fetch(CSV_URL).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); });
   }catch(err){
-    statusEl.textContent = '⚠️ Gagal ambil data. Pastikan sheet di-share "Anyone with the link". (' + err.message + ')';
+    statusEl.textContent = '⚠️ Gagal ambil data dari sheet "Plan Delivery 2026". Pastikan sudah di-Publish to Web (File > Share > Publish to web), bukan cuma "Anyone with the link". (' + err.message + ')';
     return;
+  }
+  try{
+    konfirmasiMap = await fetchKonfirmasiArmada();
+  }catch(err){
+    console.warn('Konfirmasi Armada gagal dimuat, lanjut tanpa data ini:', err.message);
+  }
+  try{
+    distributorPendingRows = await fetchDistributorPending();
+  }catch(err){
+    console.warn('Data distributor pending gagal dimuat, lanjut tanpa data ini:', err.message);
   }
 
   const parsed = Papa.parse(csvText, {skipEmptyLines:false});
