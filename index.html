@@ -583,9 +583,25 @@ function buildExpedisiText(name, rows, dateStr){
   return t.trim();
 }
 
+// Hilangkan baris duplikat: nopol/kontainer + distributor + tujuan yang sama dianggap 1 kiriman
+function dedupeShipments(rows, identifierField){
+  const seen = new Set();
+  const result = [];
+  rows.forEach(r=>{
+    const identifier = (r[identifierField]||'').toString().trim().toUpperCase();
+    const dist = (r.distributorName || extractDistributor(r.deliveryName)).toUpperCase();
+    const dest = extractDestination(r.deliveryName).toUpperCase();
+    const key = identifier + '|' + dist + '|' + dest;
+    if(seen.has(key)) return;
+    seen.add(key);
+    result.push(r);
+  });
+  return result;
+}
+
 function buildKonfirmasiText(name, rows, dateStr){
-  const kontainerRows = rows.filter(r=>isKontainer(r));
-  const truckRows = rows.filter(r=>!isKontainer(r));
+  const kontainerRows = dedupeShipments(rows.filter(r=>isKontainer(r)), 'container');
+  const truckRows = dedupeShipments(rows.filter(r=>!isKontainer(r)), 'nopol');
 
   let t = `📋 *KONFIRMASI STATUS PENGIRIMAN*\n*${name}*\nEstimasi sampai: ${dateStr}\n\n`;
 
