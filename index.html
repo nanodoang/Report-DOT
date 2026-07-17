@@ -451,7 +451,7 @@ async function fetchDistributorPendingFromCache(kapalRows){
   // Kontainer utk tab Distributor: ATA = hari ini DAN belum dooring (kolom Dooring masih kosong)
   const kontainerSudahSandar = kapalRows.filter(r=>{
     if(!r.ata) return false;
-    if(!sameDate(r.ata, today)) return false;
+    if(!isOnOrBefore(r.ata, today)) return false;
     if(r.dooring) return false; // sudah ada tanggal dooring = sudah bongkar, skip
     return true;
   }).map(r=>({
@@ -537,6 +537,13 @@ function isKontainer(r){
 function daysBetween(a,b){
   const ms = b.setHours(0,0,0,0) - a.setHours(0,0,0,0);
   return Math.round(ms/86400000);
+}
+
+// true kalau tanggal d <= ref (dibandingkan per-hari, jam diabaikan)
+function isOnOrBefore(d, ref){
+  const dd = new Date(d); dd.setHours(0,0,0,0);
+  const rr = new Date(ref); rr.setHours(0,0,0,0);
+  return dd <= rr;
 }
 
 function parseIDDate(str){
@@ -861,7 +868,7 @@ async function loadReport(){
   const byExpedisiSandarOverdue = {};
   kapalSandarRows.forEach(r=>{
     if(!r.eta || r.ata) return;
-    if(r.eta >= now) return;
+    if(!isOnOrBefore(r.eta, now)) return;
     const key = r.expedisi || 'TANPA EKSPEDISI';
     (byExpedisiSandarOverdue[key] = byExpedisiSandarOverdue[key]||[]).push(r);
   });
