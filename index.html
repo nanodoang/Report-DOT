@@ -352,7 +352,7 @@ async function fetchBongkarSheet(url, col, type){
 const CSV_URL_KAPAL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSyGGS79BtDGByCWf2bK5M_3PwOKgA9klsYG1n_227wrJp4Ky8E9H_wmVaIdOPF0dXYIlG4zSn_BP_F/pub?gid=0&single=true&output=csv';
 // header row 1, data mulai row 2
 // 0 Tanggal,1 Tujuan,2 Truck Type,3 Expedisi,4 Kapal,5 No.Container,6 ETD,7 ATD,8 ETA,9 ATA,10 Sumber
-const COL_KAPAL = { TUJUAN:1, TRUCK_TYPE:2, EXPEDISI:3, KAPAL:4, CONTAINER:5, ETD:6, ATD:7, ETA:8, ATA:9 };
+const COL_KAPAL = { TUJUAN:1, TRUCK_TYPE:2, EXPEDISI:3, KAPAL:4, CONTAINER:5, ETD:6, ATD:7, ETA:8, ATA:9, DOORING:10 };
 
 function parseUSDate(str){
   if(!str) return null;
@@ -383,7 +383,8 @@ async function fetchKapalSandar(){
         etd: parseUSDate(r[COL_KAPAL.ETD]),
         atd: parseUSDate(r[COL_KAPAL.ATD]),
         eta: parseUSDate(r[COL_KAPAL.ETA]),
-        ata: parseUSDate(r[COL_KAPAL.ATA])
+        ata: parseUSDate(r[COL_KAPAL.ATA]),
+        dooring: parseUSDate(r[COL_KAPAL.DOORING])
       });
     });
   }catch(err){
@@ -446,8 +447,14 @@ function renderSandarCard(container, expedisi, items){
 
 async function fetchDistributorPendingFromCache(kapalRows){
   const truckRows = await fetchBongkarSheet(CSV_URL_TRUCK_BONGKAR, COL_TRUCK_BONGKAR, 'truck');
-  // Kontainer utk tab Distributor: yang ATA-nya sudah terisi (sudah sandar, siap dikabari)
-  const kontainerSudahSandar = kapalRows.filter(r=>r.ata).map(r=>({
+  const today = new Date();
+  // Kontainer utk tab Distributor: ATA = hari ini DAN belum dooring (kolom Dooring masih kosong)
+  const kontainerSudahSandar = kapalRows.filter(r=>{
+    if(!r.ata) return false;
+    if(!sameDate(r.ata, today)) return false;
+    if(r.dooring) return false; // sudah ada tanggal dooring = sudah bongkar, skip
+    return true;
+  }).map(r=>({
     type: 'kontainer',
     destination: r.tujuan,
     identifier: r.container,
