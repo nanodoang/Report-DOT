@@ -156,6 +156,12 @@
     border:1px solid var(--accent);
     color:var(--accent);
   }
+  .btn.wa-sandar{
+    flex:1;
+    background:transparent;
+    border:1px solid #f59e0b;
+    color:#f59e0b;
+  }
   .phone-input{
     width:100%;
     background:var(--panel2);
@@ -374,12 +380,76 @@ async function fetchBongkarSheet(url, col, type){
   return rows;
 }
 
-async function fetchDistributorPending(){
-  const [kontainerRows, truckRows] = await Promise.all([
-    fetchBongkarSheet(CSV_URL_KONTAINER_BONGKAR, COL_KONTAINER_BONGKAR, 'kontainer'),
-    fetchBongkarSheet(CSV_URL_TRUCK_BONGKAR, COL_TRUCK_BONGKAR, 'truck')
-  ]);
-  return kontainerRows.concat(truckRows);
+// ==== Sheet baru: Kapal & Sandar Kontainer (ATA/ETA) ====
+const CSV_URL_KAPAL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSyGGS79BtDGByCWf2bK5M_3PwOKgA9klsYG1n_227wrJp4Ky8E9H_wmVaIdOPF0dXYIlG4zSn_BP_F/pub?gid=0&single=true&output=csv';
+// header row 1, data mulai row 2
+// 0 Tanggal,1 Tujuan,2 Truck Type,3 Expedisi,4 Kapal,5 No.Container,6 ETD,7 ATD,8 ETA,9 ATA,10 Sumber
+const COL_KAPAL = { TUJUAN:1, TRUCK_TYPE:2, EXPEDISI:3, KAPAL:4, CONTAINER:5, ETD:6, ATD:7, ETA:8, ATA:9 };
+
+function parseUSDate(str){
+  if(!str) return null;
+  str = str.toString().trim();
+  const m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(!m) return null;
+  return new Date(parseInt(m[3]), parseInt(m[1])-1, parseInt(m[2])); // M/D/YYYY
+}
+
+async function fetchKapalSandar(){
+  const rows = [];
+  try{
+    const res = await fetch(CSV_URL_KAPAL);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const csvText = await res.text();
+    const parsed = Papa.parse(csvText, {skipEmptyLines:false});
+    const dataRows = parsed.data.slice(1); // skip header row 1
+    dataRows.forEach(r=>{
+      const container = (r[COL_KAPAL.CONTAINER]||'').toString().trim();
+      const tujuan = (r[COL_KAPAL.TUJUAN]||'').toString().trim();
+      if(!container && !tujuan) return;
+      rows.push({
+        tujuan: tujuan,
+        truckType: r[COL_KAPAL.TRUCK_TYPE],
+        expedisi: (r[COL_KAPAL.EXPEDISI]||'').toString().trim() || 'TANPA EKSPEDISI',
+        kapal: r[COL_KAPAL.KAPAL],
+        container: container,
+        etd: parseUSDate(r[COL_KAPAL.ETD]),
+        atd: parseUSDate(r[COL_KAPAL.ATD]),
+        eta: parseUSDate(r[COL_KAPAL.ETA]),
+        ata: parseUSDate(r[COL_KAPAL.ATA])
+      });
+    });
+  }catch(err){
+    console.warn('Gagal ambil data Kapal Sandar:', err.message);
+  }
+  return rows;
+}
+
+function buildKonfirmasiSandarText(expedisi, items){
+  let t = `📋 *KONFIRMASI STATUS SANDAR KONTAINER*\n*${expedisi}*\n\n`;
+  t += `Kontainer berikut ETA-nya sudah lewat tapi belum ada laporan SANDAR. Mohon konfirmasi sudah sandar atau belum:\n\n`;
+  items.forEach((it,i)=>{
+    const days = daysBetween(new Date(it.eta), new Date());
+    t += `${i+1}. No. Kontainer: *${it.container}* — ${extractDestination(it.tujuan) || it.tujuan}\n`;
+    if(it.kapal) t += `   Kapal: ${it.kapal}\n`;
+    t += `   ETA jadwal: ${fmtDate(it.eta)} (${days} hari lewat)\n`;
+  });
+  t += `\nMohon info tanggal sandarnya, terima kasih 🙏`;
+  return t.trim();
+}
+
+async function fetchDistributorPendingFromCache(kapalRows){
+  const truckRows = await fetchBongkarSheet(CSV_URL_TRUCK_BONGKAR, COL_TRUCK_BONGKAR, 'truck');
+  // Kontainer utk tab Distributor: yang ATA-nya sudah terisi (sudah sandar, siap dikabari)
+  const kontainerSudahSandar = kapalRows.filter(r=>r.ata).map(r=>({
+    type: 'kontainer',
+    destination: r.tujuan,
+    identifier: r.container,
+    expedisi: r.expedisi,
+    arrivalDate: r.ata,
+    kapal: r.kapal,
+    status: ''
+  }));
+  return kontainerSudahSandar.concat(truckRows);
 }
 
 
@@ -629,7 +699,9 @@ function buildDistributorPendingText(distributorName, items){
     const days = it.arrivalDate ? daysBetween(new Date(it.arrivalDate), new Date()) : null;
     const label = it.type==='kontainer' ? 'No. Kontainer' : 'Nopol';
     const kota = extractDestination(it.destination) || it.destination || '';
-    t += `${i+1}. ${label}: *${it.identifier}*${kota?' — '+kota:''} (${it.expedisi})\n   ${it.type==='kontainer'?'Sandar':'Tiba gudang'}: ${fmtDate(it.arrivalDate)}${days!==null?` (${days} hari lalu)`:''}\n`;
+    t += `${i+1}. ${label}: *${it.identifier}*${kota?' — '+kota:''} (${it.expedisi})\n`;
+    if(it.kapal) t += `   Kapal: ${it.kapal}\n`;
+    t += `   ${it.type==='kontainer'?'Sandar':'Tiba gudang'}: ${fmtDate(it.arrivalDate)}${days!==null?` (${days} hari lalu)`:''}\n`;
   });
   t += `\nMohon segera dijadwalkan bongkar, terima kasih 🙏`;
   return t.trim();
@@ -689,7 +761,7 @@ function waLink(phone, text){
   return `${base}?text=${encodeURIComponent(text)}`;
 }
 
-function renderGroupCard(container, type, key, rows, dateStr, textBuilder, badgeExtra, konfirmasiBuilder){
+function renderGroupCard(container, type, key, rows, dateStr, textBuilder, badgeExtra, konfirmasiBuilder, sandarText){
   const s = summarize(rows);
   const text = textBuilder(key, rows, dateStr);
   const phone = getPhone(type, key);
@@ -715,6 +787,9 @@ function renderGroupCard(container, type, key, rows, dateStr, textBuilder, badge
       ${type==='exp' && konfirmasiText ? '' : `<a class="btn wa" target="_blank" href="${waLink(phone,text)}" data-linkfor="${key}">Kirim Laporan</a>`}
       ${konfirmasiText ? `<a class="btn wa-konfirmasi" target="_blank" href="${waLink(phone,konfirmasiText)}" data-linkfor-konfirmasi="${key}">Minta Konfirmasi</a>` : ''}
     </div>
+    ${sandarText ? `<div class="card-actions" style="margin-top:8px;">
+      <a class="btn wa-sandar" target="_blank" href="${waLink(phone,sandarText)}">🚢 Konfirmasi Sandar</a>
+    </div>` : ''}
     <details>
       <summary>Lihat detail data DOT (${rows.length} unit)</summary>
       ${rows.map(r=>`
@@ -744,6 +819,8 @@ function renderGroupCard(container, type, key, rows, dateStr, textBuilder, badge
     if(link) link.href = waLink(input.value, text);
     const linkK = div.querySelector('.wa-konfirmasi');
     if(linkK) linkK.href = waLink(input.value, konfirmasiText);
+    const linkS = div.querySelector('.wa-sandar');
+    if(linkS) linkS.href = waLink(input.value, sandarText);
   });
 
   container.appendChild(div);
@@ -763,6 +840,7 @@ async function loadReport(){
   let csvText;
   let konfirmasiMap = {};
   let distributorPendingRows = [];
+  let kapalSandarRows = [];
   try{
     csvText = await fetch(CSV_URL).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); });
   }catch(err){
@@ -775,7 +853,8 @@ async function loadReport(){
     console.warn('Konfirmasi Armada gagal dimuat, lanjut tanpa data ini:', err.message);
   }
   try{
-    distributorPendingRows = await fetchDistributorPending();
+    kapalSandarRows = await fetchKapalSandar();
+    distributorPendingRows = await fetchDistributorPendingFromCache(kapalSandarRows);
   }catch(err){
     console.warn('Data distributor pending gagal dimuat, lanjut tanpa data ini:', err.message);
   }
@@ -838,12 +917,27 @@ async function loadReport(){
   todayRows.forEach(r=>{
     (byExpedisi[r.expedisi] = byExpedisi[r.expedisi]||[]).push(r);
   });
+
+  // Kontainer yang ETA-nya sudah lewat tapi ATA masih kosong -> perlu konfirmasi sandar ke ekspedisi
+  const now = new Date();
+  const byExpedisiSandarOverdue = {};
+  kapalSandarRows.forEach(r=>{
+    if(!r.eta || r.ata) return;
+    if(r.eta >= now) return;
+    const key = r.expedisi || 'TANPA EKSPEDISI';
+    (byExpedisiSandarOverdue[key] = byExpedisiSandarOverdue[key]||[]).push(r);
+  });
+
+  const allExpedisiKeys = new Set([...Object.keys(byExpedisi), ...Object.keys(byExpedisiSandarOverdue)]);
+
   const expedisiContainer = document.getElementById('expedisiList');
-  if(Object.keys(byExpedisi).length===0){
+  if(allExpedisiKeys.size===0){
     expedisiContainer.innerHTML = '<div class="empty">Tidak ada data dengan Receipt ETA di tanggal ini</div>';
   } else {
-    Object.keys(byExpedisi).sort().forEach(key=>{
-      renderGroupCard(expedisiContainer, 'exp', key, byExpedisi[key], dateStrDisplay, buildExpedisiText, null, buildKonfirmasiText);
+    Array.from(allExpedisiKeys).sort().forEach(key=>{
+      const sandarItems = byExpedisiSandarOverdue[key];
+      const sandarText = sandarItems && sandarItems.length ? buildKonfirmasiSandarText(key, sandarItems) : null;
+      renderGroupCard(expedisiContainer, 'exp', key, byExpedisi[key]||[], dateStrDisplay, buildExpedisiText, null, buildKonfirmasiText, sandarText);
     });
   }
 
@@ -865,6 +959,5 @@ async function loadReport(){
 document.getElementById('reportDate').valueAsDate = new Date();
 loadReport();
 </script>
-<a href="https://nanodoang.github.io/Logistic-Transportation/" style="position:fixed;bottom:18px;left:18px;display:flex;align-items:center;gap:8px;background:#1a1f1a;color:#f0efe6;text-decoration:none;font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border-radius:8px;box-shadow:0 3px 10px rgba(0,0,0,0.25);z-index:9999;" onmouseover="this.style.background='#b5502e'" onmouseout="this.style.background='#1a1f1a'">← Portal Utama</a>
 </body>
 </html>
