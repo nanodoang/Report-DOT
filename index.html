@@ -204,8 +204,9 @@
   }
   .period-tabs{
     display:flex;
-    gap:6px;
+    gap:8px;
     margin-bottom:14px;
+    align-items:center;
   }
   .period-btn{
     padding:7px 16px;
@@ -220,6 +221,17 @@
     background:var(--accent);
     border-color:var(--accent);
     color:#fff;
+  }
+  .bulan-select{
+    background:var(--panel2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:8px 12px;
+    border-radius:8px;
+    font-size:14px;
+    font-weight:700;
+    flex:1;
+    max-width:200px;
   }
   .table-wrap{
     overflow-x:auto;
@@ -311,9 +323,8 @@
 
   <div class="tab-panel active" id="panelOverview">
     <div class="period-tabs">
-      <button class="period-btn active" id="periodBtnHarian" onclick="switchPeriod('harian')">Harian</button>
-      <button class="period-btn" id="periodBtnMingguan" onclick="switchPeriod('mingguan')">Mingguan</button>
-      <button class="period-btn" id="periodBtnYtd" onclick="switchPeriod('ytd')">YTD</button>
+      <label for="bulanSelect" style="font-size:13px;color:var(--muted);align-self:center;">Bulan:</label>
+      <select id="bulanSelect" class="bulan-select" onchange="switchBulan(this.value)"></select>
     </div>
 
     <div class="group-title">🚢 Kontainer / Laut</div>
@@ -685,44 +696,45 @@ function switchTab(tab){
   document.getElementById('panelSandar').classList.toggle('active', tab==='sandar');
 }
 
-let currentPeriod = 'harian';
+let currentBulan = null;
 let allRowsGlobal = [];
 let kapalSandarRowsGlobal = [];
 let dot2026RowsGlobal = [];
 
-function switchPeriod(period){
-  currentPeriod = period;
-  document.getElementById('periodBtnHarian').classList.toggle('active', period==='harian');
-  document.getElementById('periodBtnMingguan').classList.toggle('active', period==='mingguan');
-  document.getElementById('periodBtnYtd').classList.toggle('active', period==='ytd');
-  renderOverviewForPeriod();
-}
+const BULAN_ORDER = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
-function getPeriodRange(period){
-  const today = new Date(); today.setHours(0,0,0,0);
-  if(period==='harian') return {start: today, end: today};
-  if(period==='mingguan'){
-    const day = today.getDay(); // 0=Minggu
-    const diffToMonday = (day===0?6:day-1);
-    const start = new Date(today); start.setDate(start.getDate()-diffToMonday);
-    return {start, end: today};
+function populateBulanSelector(){
+  const bulanSet = new Set();
+  dot2026RowsGlobal.forEach(r=>{ if(r.bulan) bulanSet.add(r.bulan); });
+  const bulanList = Array.from(bulanSet).sort((a,b)=>{
+    const ia = BULAN_ORDER.indexOf(a), ib = BULAN_ORDER.indexOf(b);
+    return (ia===-1?99:ia) - (ib===-1?99:ib);
+  });
+
+  const select = document.getElementById('bulanSelect');
+  select.innerHTML = bulanList.map(b=>`<option value="${b}">${b}</option>`).join('');
+
+  if(bulanList.length===0){
+    select.innerHTML = '<option value="">Tidak ada data</option>';
+    currentBulan = null;
+    return;
   }
-  // ytd
-  const start = new Date(today.getFullYear(),0,1);
-  return {start, end: today};
+  // default: bulan terakhir yang ada datanya
+  currentBulan = bulanList[bulanList.length-1];
+  select.value = currentBulan;
 }
 
-function inRange(date, range){
-  if(!date) return false;
-  const d = new Date(date); d.setHours(0,0,0,0);
-  return d>=range.start && d<=range.end;
+function switchBulan(bulan){
+  currentBulan = bulan;
+  renderOverviewForPeriod();
+  renderMissRanking();
 }
 
 function fillDotTable(tbodyId, rows, colsFn, emptyColspan){
   const tbody = document.getElementById(tbodyId);
   tbody.innerHTML = '';
   if(rows.length===0){
-    tbody.innerHTML = `<tr><td colspan="${emptyColspan}" style="text-align:center;color:var(--muted);padding:20px;">Tidak ada data di periode ini</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${emptyColspan}" style="text-align:center;color:var(--muted);padding:20px;">Tidak ada data di bulan ini</td></tr>`;
     return;
   }
   rows
@@ -736,8 +748,7 @@ function fillDotTable(tbodyId, rows, colsFn, emptyColspan){
 }
 
 function renderOverviewForPeriod(){
-  const range = getPeriodRange(currentPeriod);
-  const filtered = dot2026RowsGlobal.filter(r=>inRange(r.receiptETA, range));
+  const filtered = dot2026RowsGlobal.filter(r=>r.bulan===currentBulan);
   const kontainerRows = filtered.filter(rowIsKontainerType);
   const truckRows = filtered.filter(r=>!rowIsKontainerType(r));
 
@@ -780,53 +791,65 @@ function renderOverviewForPeriod(){
   }, 6);
 }
 
-const BULAN_ORDER = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-
 function renderMissRanking(){
-  const missRows = dot2026RowsGlobal.filter(r=>(r.hitMiss||'').toLowerCase()==='miss');
-  const byMonth = {};
-  missRows.forEach(r=>{
-    const month = r.bulan || 'Tidak diketahui';
-    if(!byMonth[month]) byMonth[month] = {expedisi:{}, distributor:{}};
-    const exp = r.expedisi || 'Tidak diketahui';
-    byMonth[month].expedisi[exp] = (byMonth[month].expedisi[exp]||0)+1;
-    const dist = r.distributorName || 'Tidak diketahui';
-    byMonth[month].distributor[dist] = (byMonth[month].distributor[dist]||0)+1;
-  });
-
-  const months = Object.keys(byMonth).sort((a,b)=>{
-    const ia = BULAN_ORDER.indexOf(a), ib = BULAN_ORDER.indexOf(b);
-    return (ia===-1?99:ia) - (ib===-1?99:ib);
-  });
-
   const container = document.getElementById('missRankingContainer');
   container.innerHTML = '';
 
-  if(months.length===0){
-    container.innerHTML = '<div class="empty">Tidak ada data Miss</div>';
+  if(!currentBulan){
+    container.innerHTML = '<div class="empty">Tidak ada data</div>';
     return;
   }
 
-  months.forEach(month=>{
-    const expEntries = Object.entries(byMonth[month].expedisi).sort((a,b)=>b[1]-a[1]).slice(0,5);
-    const distEntries = Object.entries(byMonth[month].distributor).sort((a,b)=>b[1]-a[1]).slice(0,5);
-    const div = document.createElement('div');
-    div.className = 'card';
-    div.innerHTML = `
-      <div class="card-title" style="margin-bottom:10px;">${month}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div>
-          <div class="card-sub" style="margin-bottom:6px;font-weight:700;">Ekspedisi Miss</div>
-          ${expEntries.map(([name,count])=>`<div class="detail-row"><b>${name}</b> — ${count}x</div>`).join('') || '<div class="empty" style="padding:8px 0;">-</div>'}
-        </div>
-        <div>
-          <div class="card-sub" style="margin-bottom:6px;font-weight:700;">Distributor Miss</div>
-          ${distEntries.map(([name,count])=>`<div class="detail-row"><b>${name}</b> — ${count}x</div>`).join('') || '<div class="empty" style="padding:8px 0;">-</div>'}
+  const missRows = dot2026RowsGlobal.filter(r=>r.bulan===currentBulan && (r.hitMiss||'').toLowerCase()==='miss');
+
+  if(missRows.length===0){
+    container.innerHTML = `<div class="empty">✅ Tidak ada Miss di bulan ${currentBulan}</div>`;
+    return;
+  }
+
+  // Ranking ekspedisi (jumlah miss)
+  const byExpedisi = {};
+  missRows.forEach(r=>{
+    const exp = r.expedisi || 'Tidak diketahui';
+    (byExpedisi[exp] = byExpedisi[exp]||[]).push(r);
+  });
+  const expRanked = Object.entries(byExpedisi).sort((a,b)=>b[1].length-a[1].length);
+
+  // Ranking distributor (jumlah miss)
+  const byDistributor = {};
+  missRows.forEach(r=>{
+    const dist = r.distributorName || 'Tidak diketahui';
+    byDistributor[dist] = (byDistributor[dist]||0)+1;
+  });
+  const distRanked = Object.entries(byDistributor).sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+  const expDetailHtml = expRanked.map(([name, items])=>{
+    const rowsHtml = items.map(r=>{
+      const dest = extractDestination(r.deliveryName) || '-';
+      const ket = r.keterangan || r.issue || '-';
+      return `<tr><td>${r.distributorName||'-'}</td><td>${dest}</td><td>${ket}</td></tr>`;
+    }).join('');
+    return `
+      <div class="card" style="margin-bottom:10px;">
+        <div class="card-title" style="margin-bottom:8px;">${name} <span style="color:var(--miss);font-weight:800;">— ${items.length}x Miss</span></div>
+        <div class="table-wrap">
+          <table class="dot-table">
+            <thead><tr><th>Tujuan</th><th>Kota</th><th>Keterangan</th></tr></thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
         </div>
       </div>
     `;
-    container.appendChild(div);
-  });
+  }).join('');
+
+  const distHtml = distRanked.map(([name,count])=>`<div class="detail-row"><b>${name}</b> — ${count}x</div>`).join('') || '<div class="empty" style="padding:8px 0;">-</div>';
+
+  container.innerHTML = `
+    <div class="card-sub" style="margin-bottom:8px;font-weight:700;font-size:13px;">🚚 Ekspedisi Miss — ${currentBulan}</div>
+    ${expDetailHtml}
+    <div class="card-sub" style="margin:16px 0 8px;font-weight:700;font-size:13px;">🏢 Distributor Paling Sering Miss — ${currentBulan}</div>
+    <div class="card">${distHtml}</div>
+  `;
 }
 
 function isKontainer(r){
@@ -1209,6 +1232,7 @@ async function loadReport(){
   }catch(err){
     console.warn('Gagal ambil data dot 2026 (Overview):', err.message);
   }
+  populateBulanSelector();
   renderOverviewForPeriod();
   renderMissRanking();
 }
