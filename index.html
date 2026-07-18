@@ -399,7 +399,7 @@
     <div class="period-block">
       <div class="period-block-head">
         <span class="period-block-title">📆 Mingguan</span>
-        <span class="period-block-sub" id="mingguanRangeLabel"></span>
+        <select id="weekSelect" class="bulan-select-sm" onchange="switchWeek(this.value)"></select>
       </div>
       <div class="mini-group-title">🚢 Kontainer</div>
       <div class="overall-sm" id="statMingguanK"></div>
@@ -431,7 +431,7 @@
     <div class="table-wrap">
       <table class="dot-table" id="dotTableKontainer">
         <thead>
-          <tr><th>Expedisi</th><th>Tujuan</th><th>No. Kontainer</th><th>ATA</th><th>Receipt Date</th><th>Sandar</th><th>Dooring</th><th>Ket</th></tr>
+          <tr><th>Expedisi</th><th>Tujuan</th><th>No. Kontainer</th><th>ETA</th><th>Receipt Date</th><th>Sandar</th><th>Dooring</th><th>Ket</th></tr>
         </thead>
         <tbody id="dotTableKontainerBody"></tbody>
       </table>
@@ -441,7 +441,7 @@
     <div class="table-wrap">
       <table class="dot-table" id="dotTableTruck">
         <thead>
-          <tr><th>Expedisi</th><th>Tujuan</th><th>Nopol</th><th>ATA</th><th>Receipt Date</th><th>Ket</th></tr>
+          <tr><th>Expedisi</th><th>Tujuan</th><th>Nopol</th><th>ETA</th><th>Receipt Date</th><th>Ket</th></tr>
         </thead>
         <tbody id="dotTableTruckBody"></tbody>
       </table>
@@ -477,7 +477,7 @@ const DOT2026_DATA_START = 8;
 const COL_DOT2026 = {
   KOTA:1, BULAN:2, NOPOL:6, CONTAINER:7, EXPEDISI:8, VEHICLE_TYPE:9, DELIVERY_NAME:10,
   SHIP_DATE:11, SHOW_ETA:12, RECEIPT_ETA:13, ARRIVAL_DATE:14, RECEIPT_DATE:15,
-  KETERANGAN:16, ISSUE:17, HIT_MISS:18, SANDAR:24, DOORING:25, TYPE:30
+  KETERANGAN:16, ISSUE:17, HIT_MISS:18, SANDAR:24, DOORING:25, TYPE:30, WEEK:31
 };
 
 async function fetchDot2026(){
@@ -510,6 +510,7 @@ async function fetchDot2026(){
         hitMiss: (r[COL_DOT2026.HIT_MISS]||'').toString().trim(),
         sandar: parseIDDate(r[COL_DOT2026.SANDAR]),
         dooring: parseIDDate(r[COL_DOT2026.DOORING]),
+        week: (r[COL_DOT2026.WEEK]||'').toString().trim(),
         type: (r[COL_DOT2026.TYPE]||'').toString().trim().toUpperCase()
       });
     });
@@ -798,13 +799,7 @@ function switchMode(mode){
   renderMissRanking();
 }
 
-function getMingguanRange(){
-  const today = new Date(); today.setHours(0,0,0,0);
-  const day = today.getDay(); // 0=Minggu
-  const diffToMonday = (day===0?6:day-1);
-  const start = new Date(today); start.setDate(start.getDate()-diffToMonday);
-  return {start, end: today};
-}
+let currentWeek = null;
 
 function populateBulanSelector(){
   const bulanSet = new Set();
@@ -826,8 +821,8 @@ function populateBulanSelector(){
     select.value = currentBulan;
   }
 
-  // Harian: default ke tanggal ATA (Arrival Date) terakhir yang ada datanya di sheet
-  const dates = dot2026RowsGlobal.map(r=>r.arrivalDate).filter(Boolean);
+  // Harian: default ke tanggal ETA (Receipt ETA) terakhir yang ada datanya di sheet
+  const dates = dot2026RowsGlobal.map(r=>r.receiptETA).filter(Boolean);
   if(dates.length===0){
     currentDotDate = null;
   } else {
@@ -837,8 +832,25 @@ function populateBulanSelector(){
     document.getElementById('dotDateSelect').value = iso;
   }
 
-  const mr = getMingguanRange();
-  document.getElementById('mingguanRangeLabel').textContent = `${fmtDate(mr.start)} — ${fmtDate(mr.end)}`;
+  // Mingguan: pakai kolom WEEK dari sheet langsung (bukan hitung sendiri)
+  const weekSet = new Set();
+  dot2026RowsGlobal.forEach(r=>{ if(r.week) weekSet.add(r.week); });
+  const weekList = Array.from(weekSet).sort((a,b)=> parseFloat(a)-parseFloat(b));
+  const weekSelect = document.getElementById('weekSelect');
+  weekSelect.innerHTML = weekList.map(w=>`<option value="${w}">Minggu ${w}</option>`).join('');
+  if(weekList.length===0){
+    weekSelect.innerHTML = '<option value="">Tidak ada data</option>';
+    currentWeek = null;
+  } else {
+    currentWeek = weekList[weekList.length-1];
+    weekSelect.value = currentWeek;
+  }
+}
+
+function switchWeek(week){
+  currentWeek = week;
+  renderAllPeriodStats();
+  if(currentMode==='mingguan'){ renderDetailSection(); renderMissRanking(); }
 }
 
 function switchBulan(bulan){
@@ -855,16 +867,11 @@ function switchDotDate(iso){
 
 function getHarianRows(){
   if(!currentDotDate) return [];
-  return dot2026RowsGlobal.filter(r=>sameDate(r.arrivalDate, currentDotDate));
+  return dot2026RowsGlobal.filter(r=>sameDate(r.receiptETA, currentDotDate));
 }
 
 function getMingguanRows(){
-  const range = getMingguanRange();
-  return dot2026RowsGlobal.filter(r=>{
-    if(!r.arrivalDate) return false;
-    const d = new Date(r.arrivalDate); d.setHours(0,0,0,0);
-    return d>=range.start && d<=range.end;
-  });
+  return dot2026RowsGlobal.filter(r=>r.week===currentWeek);
 }
 
 function getBulananRows(){
@@ -879,10 +886,7 @@ function getFilteredDotRows(){
 
 function currentPeriodLabel(){
   if(currentMode==='bulanan') return currentBulan || '-';
-  if(currentMode==='mingguan'){
-    const mr = getMingguanRange();
-    return `${fmtDate(mr.start)} — ${fmtDate(mr.end)}`;
-  }
+  if(currentMode==='mingguan') return currentWeek ? `Minggu ${currentWeek}` : '-';
   return currentDotDate ? fmtDate(currentDotDate) : '-';
 }
 
@@ -918,7 +922,7 @@ function fillDotTable(tbodyId, rows, colsFn, emptyColspan){
   }
   rows
     .slice()
-    .sort((a,b)=> (b.arrivalDate||0) - (a.arrivalDate||0))
+    .sort((a,b)=> (b.receiptETA||0) - (a.receiptETA||0))
     .forEach(r=>{
       const tr = document.createElement('tr');
       tr.innerHTML = colsFn(r);
@@ -937,7 +941,7 @@ function renderDetailSection(){
       <td>${r.expedisi}</td>
       <td>${r.distributorName || '-'}</td>
       <td>${r.container || '-'}</td>
-      <td>${fmtDate(r.arrivalDate)}</td>
+      <td>${fmtDate(r.receiptETA)}</td>
       <td>${fmtDate(r.receiptDate)}</td>
       <td>${fmtDate(r.sandar)}</td>
       <td>${fmtDate(r.dooring)}</td>
@@ -951,7 +955,7 @@ function renderDetailSection(){
       <td>${r.expedisi}</td>
       <td>${r.distributorName || '-'}</td>
       <td>${r.nopol || '-'}</td>
-      <td>${fmtDate(r.arrivalDate)}</td>
+      <td>${fmtDate(r.receiptETA)}</td>
       <td>${fmtDate(r.receiptDate)}</td>
       <td class="${ketClass}">${r.hitMiss || '-'}</td>
     `;
@@ -1063,9 +1067,10 @@ function extractDistributor(name){
 }
 function extractDestination(name){
   if(!name) return '';
-  const parts = name.split(' - ');
-  if(parts.length<2) return '';
-  return parts[1].replace(/\(.*\)/,'').trim();
+  const idx = name.indexOf(' - ');
+  if(idx===-1) return '';
+  const rest = name.slice(idx+3);
+  return rest.replace(/\(.*\)/,'').trim();
 }
 
 function summarize(rows){
