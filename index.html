@@ -7,36 +7,53 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
   :root{
-    --bg:#0f1419;
-    --panel:#171d26;
-    --panel2:#1e2530;
-    --border:#2a3340;
-    --text:#e8edf2;
-    --muted:#8a97a8;
-    --hit:#2ecc71;
-    --miss:#e74c3c;
-    --accent:#3b82f6;
+    --bg:#6EC1E8;
+    --panel:#ffffff;
+    --panel2:#EAF6FF;
+    --border:#BEE3F5;
+    --text:#173247;
+    --muted:#5C7A94;
+    --hit:#1E9E5A;
+    --miss:#D9403A;
+    --accent:#0B6FB0;
     --radius:12px;
   }
   *{box-sizing:border-box;}
   body{
     margin:0;
-    background:var(--bg);
+    background:linear-gradient(180deg, #4FA8D8 0%, #7EC8E8 100%);
     color:var(--text);
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
     padding-bottom:60px;
   }
   header{
-    padding:16px;
+    padding:14px 16px;
     background:var(--panel);
     border-bottom:1px solid var(--border);
     position:sticky;
     top:0;
     z-index:10;
   }
+  .header-brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:10px;
+  }
+  .logo-badge{
+    background:linear-gradient(135deg, var(--accent), #063E63);
+    color:#fff;
+    font-size:12px;
+    font-weight:900;
+    letter-spacing:.03em;
+    padding:8px 10px;
+    border-radius:8px;
+    line-height:1;
+    flex-shrink:0;
+  }
   header h1{
     font-size:17px;
-    margin:0 0 10px;
+    margin:0;
     font-weight:700;
   }
   .datebar{
@@ -63,7 +80,7 @@
     font-weight:600;
   }
   main{padding:14px;}
-  .status{color:var(--muted);font-size:13px;margin:8px 0 16px;text-align:center;}
+  .status{color:rgba(255,255,255,0.95);font-size:13px;margin:8px 0 16px;text-align:center;font-weight:600;}
 
   .overall{
     display:grid;
@@ -364,7 +381,10 @@
 <body>
 
 <header>
-  <h1>📊 Report Delivery On Time</h1>
+  <div class="header-brand">
+    <div class="logo-badge">UNIFAM</div>
+    <h1>Report Delivery On Time</h1>
+  </div>
   <div class="datebar">
     <input type="date" id="reportDate">
     <button onclick="loadReport()">Refresh</button>
@@ -399,7 +419,7 @@
     <div class="period-block">
       <div class="period-block-head">
         <span class="period-block-title">📆 Mingguan</span>
-        <select id="weekSelect" class="bulan-select-sm" onchange="switchWeek(this.value)"></select>
+        <span class="period-block-sub" id="mingguanRangeLabel"></span>
       </div>
       <div class="mini-group-title">🚢 Kontainer</div>
       <div class="overall-sm" id="statMingguanK"></div>
@@ -799,7 +819,13 @@ function switchMode(mode){
   renderMissRanking();
 }
 
-let currentWeek = null;
+function getMingguanRange(){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const day = today.getDay(); // 0=Minggu
+  const diffToMonday = (day===0?6:day-1);
+  const start = new Date(today); start.setDate(start.getDate()-diffToMonday);
+  return {start, end: today};
+}
 
 function populateBulanSelector(){
   const bulanSet = new Set();
@@ -816,41 +842,21 @@ function populateBulanSelector(){
     select.innerHTML = '<option value="">Tidak ada data</option>';
     currentBulan = null;
   } else {
-    // default: bulan terakhir yang ada datanya
-    currentBulan = bulanList[bulanList.length-1];
+    // default: bulan berjalan (real-time) kalau ada datanya, kalau nggak fallback ke bulan terakhir yang ada data
+    const namaBulanSekarang = BULAN_ORDER[new Date().getMonth()];
+    currentBulan = bulanList.includes(namaBulanSekarang) ? namaBulanSekarang : bulanList[bulanList.length-1];
     select.value = currentBulan;
   }
 
-  // Harian: default ke tanggal ETA (Receipt ETA) terakhir yang ada datanya di sheet
-  const dates = dot2026RowsGlobal.map(r=>r.receiptETA).filter(Boolean);
-  if(dates.length===0){
-    currentDotDate = null;
-  } else {
-    const maxDate = new Date(Math.max(...dates.map(d=>d.getTime())));
-    currentDotDate = maxDate;
-    const iso = maxDate.getFullYear()+'-'+String(maxDate.getMonth()+1).padStart(2,'0')+'-'+String(maxDate.getDate()).padStart(2,'0');
-    document.getElementById('dotDateSelect').value = iso;
-  }
+  // Harian: default ke HARI INI (real-time), bisa diubah manual
+  const today = new Date();
+  currentDotDate = today;
+  const iso = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  document.getElementById('dotDateSelect').value = iso;
 
-  // Mingguan: pakai kolom WEEK dari sheet langsung (bukan hitung sendiri)
-  const weekSet = new Set();
-  dot2026RowsGlobal.forEach(r=>{ if(r.week) weekSet.add(r.week); });
-  const weekList = Array.from(weekSet).sort((a,b)=> parseFloat(a)-parseFloat(b));
-  const weekSelect = document.getElementById('weekSelect');
-  weekSelect.innerHTML = weekList.map(w=>`<option value="${w}">Minggu ${w}</option>`).join('');
-  if(weekList.length===0){
-    weekSelect.innerHTML = '<option value="">Tidak ada data</option>';
-    currentWeek = null;
-  } else {
-    currentWeek = weekList[weekList.length-1];
-    weekSelect.value = currentWeek;
-  }
-}
-
-function switchWeek(week){
-  currentWeek = week;
-  renderAllPeriodStats();
-  if(currentMode==='mingguan'){ renderDetailSection(); renderMissRanking(); }
+  // Mingguan: Senin minggu ini s/d hari ini (real-time)
+  const mr = getMingguanRange();
+  document.getElementById('mingguanRangeLabel').textContent = `${fmtDate(mr.start)} — ${fmtDate(mr.end)}`;
 }
 
 function switchBulan(bulan){
@@ -871,7 +877,12 @@ function getHarianRows(){
 }
 
 function getMingguanRows(){
-  return dot2026RowsGlobal.filter(r=>r.week===currentWeek);
+  const range = getMingguanRange();
+  return dot2026RowsGlobal.filter(r=>{
+    if(!r.receiptETA) return false;
+    const d = new Date(r.receiptETA); d.setHours(0,0,0,0);
+    return d>=range.start && d<=range.end;
+  });
 }
 
 function getBulananRows(){
@@ -886,7 +897,10 @@ function getFilteredDotRows(){
 
 function currentPeriodLabel(){
   if(currentMode==='bulanan') return currentBulan || '-';
-  if(currentMode==='mingguan') return currentWeek ? `Minggu ${currentWeek}` : '-';
+  if(currentMode==='mingguan'){
+    const mr = getMingguanRange();
+    return `${fmtDate(mr.start)} — ${fmtDate(mr.end)}`;
+  }
   return currentDotDate ? fmtDate(currentDotDate) : '-';
 }
 
