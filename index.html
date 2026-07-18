@@ -233,6 +233,66 @@
     flex:1;
     max-width:200px;
   }
+
+  .period-block{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:14px;
+    margin-bottom:12px;
+  }
+  .period-block-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:10px;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .period-block-title{
+    font-size:15px;
+    font-weight:800;
+  }
+  .period-block-sub{
+    font-size:12px;
+    color:var(--muted);
+  }
+  .bulan-select-sm{
+    background:var(--panel2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:6px 10px;
+    border-radius:8px;
+    font-size:13px;
+    font-weight:700;
+  }
+  .mini-group-title{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    color:var(--muted);
+    margin:8px 0 6px;
+    font-weight:700;
+  }
+  .overall-sm{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:6px;
+    margin-bottom:4px;
+  }
+  .overall-sm .stat{
+    background:var(--panel2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:8px 4px;
+    text-align:center;
+  }
+  .overall-sm .stat .num{font-size:15px;font-weight:800;}
+  .overall-sm .stat .label{font-size:9px;color:var(--muted);margin-top:1px;}
+  .overall-sm .stat.hit .num{color:var(--hit);}
+  .overall-sm .stat.miss .num{color:var(--miss);}
+  .overall-sm .stat.pct .num{color:var(--accent);}
+
   .table-wrap{
     overflow-x:auto;
     border:1px solid var(--border);
@@ -322,48 +382,72 @@
   </div>
 
   <div class="tab-panel active" id="panelOverview">
+
+    <!-- === RINGKASAN HARIAN === -->
+    <div class="period-block">
+      <div class="period-block-head">
+        <span class="period-block-title">📅 Harian</span>
+        <input type="date" id="dotDateSelect" class="bulan-select-sm" onchange="switchDotDate(this.value)">
+      </div>
+      <div class="mini-group-title">🚢 Kontainer</div>
+      <div class="overall-sm" id="statHarianK"></div>
+      <div class="mini-group-title">🚛 Truck</div>
+      <div class="overall-sm" id="statHarianT"></div>
+    </div>
+
+    <!-- === RINGKASAN MINGGUAN === -->
+    <div class="period-block">
+      <div class="period-block-head">
+        <span class="period-block-title">📆 Mingguan</span>
+        <span class="period-block-sub" id="mingguanRangeLabel"></span>
+      </div>
+      <div class="mini-group-title">🚢 Kontainer</div>
+      <div class="overall-sm" id="statMingguanK"></div>
+      <div class="mini-group-title">🚛 Truck</div>
+      <div class="overall-sm" id="statMingguanT"></div>
+    </div>
+
+    <!-- === RINGKASAN BULANAN === -->
+    <div class="period-block">
+      <div class="period-block-head">
+        <span class="period-block-title">🗓️ Bulanan</span>
+        <select id="bulanSelect" class="bulan-select-sm" onchange="switchBulan(this.value)"></select>
+      </div>
+      <div class="mini-group-title">🚢 Kontainer</div>
+      <div class="overall-sm" id="statBulananK"></div>
+      <div class="mini-group-title">🚛 Truck</div>
+      <div class="overall-sm" id="statBulananT"></div>
+    </div>
+
+    <!-- === DETAIL: PILIH PERIODE === -->
+    <div class="section-title" style="margin-top:26px;">🔍 Lihat Detail &amp; Ranking Miss Untuk</div>
     <div class="period-tabs">
-      <label for="bulanSelect" style="font-size:13px;color:var(--muted);align-self:center;">Bulan:</label>
-      <select id="bulanSelect" class="bulan-select" onchange="switchBulan(this.value)"></select>
+      <button class="period-btn active" id="modeBtnHarian" onclick="switchMode('harian')">Harian</button>
+      <button class="period-btn" id="modeBtnMingguan" onclick="switchMode('mingguan')">Mingguan</button>
+      <button class="period-btn" id="modeBtnBulanan" onclick="switchMode('bulanan')">Bulanan</button>
     </div>
 
-    <div class="group-title">🚢 Kontainer / Laut</div>
-    <div class="overall" id="overallStatsKontainer">
-      <div class="stat hit"><div class="num" id="ovHitK">0</div><div class="label">HIT</div></div>
-      <div class="stat miss"><div class="num" id="ovMissK">0</div><div class="label">MISS</div></div>
-      <div class="stat"><div class="num" id="ovTotalK">0</div><div class="label">TOTAL</div></div>
-      <div class="stat pct"><div class="num" id="ovPctK">0%</div><div class="label">OTD</div></div>
-    </div>
-
-    <div class="group-title">🚛 Truck / Darat</div>
-    <div class="overall" id="overallStatsTruck">
-      <div class="stat hit"><div class="num" id="ovHitT">0</div><div class="label">HIT</div></div>
-      <div class="stat miss"><div class="num" id="ovMissT">0</div><div class="label">MISS</div></div>
-      <div class="stat"><div class="num" id="ovTotalT">0</div><div class="label">TOTAL</div></div>
-      <div class="stat pct"><div class="num" id="ovPctT">0%</div><div class="label">OTD</div></div>
-    </div>
-
-    <div class="section-title" style="margin-top:22px;">Data DOT — Kontainer / Laut</div>
+    <div class="section-title" style="margin-top:22px;">Data Miss — Kontainer / Laut</div>
     <div class="table-wrap">
       <table class="dot-table" id="dotTableKontainer">
         <thead>
-          <tr><th>Expedisi</th><th>Tujuan</th><th>No. Kontainer</th><th>ETA</th><th>Receipt Date</th><th>Sandar</th><th>Dooring</th><th>Ket</th></tr>
+          <tr><th>Expedisi</th><th>Tujuan</th><th>No. Kontainer</th><th>ATA</th><th>Receipt Date</th><th>Sandar</th><th>Dooring</th><th>Ket</th></tr>
         </thead>
         <tbody id="dotTableKontainerBody"></tbody>
       </table>
     </div>
 
-    <div class="section-title">Data DOT — Truck / Darat</div>
+    <div class="section-title">Data Miss — Truck / Darat</div>
     <div class="table-wrap">
       <table class="dot-table" id="dotTableTruck">
         <thead>
-          <tr><th>Expedisi</th><th>Tujuan</th><th>Nopol</th><th>ETA</th><th>Receipt Date</th><th>Ket</th></tr>
+          <tr><th>Expedisi</th><th>Tujuan</th><th>Nopol</th><th>ATA</th><th>Receipt Date</th><th>Ket</th></tr>
         </thead>
         <tbody id="dotTableTruckBody"></tbody>
       </table>
     </div>
 
-    <div class="section-title">🚨 Ekspedisi &amp; Distributor Paling Sering Miss (per Bulan)</div>
+    <div class="section-title">🚨 Ekspedisi &amp; Distributor Paling Sering Miss</div>
     <div id="missRankingContainer"></div>
 
   </div>
@@ -696,12 +780,31 @@ function switchTab(tab){
   document.getElementById('panelSandar').classList.toggle('active', tab==='sandar');
 }
 
+let currentMode = 'harian'; // 'harian' | 'mingguan' | 'bulanan' — cuma ngatur bagian DETAIL di bawah
 let currentBulan = null;
+let currentDotDate = null;
 let allRowsGlobal = [];
 let kapalSandarRowsGlobal = [];
 let dot2026RowsGlobal = [];
 
 const BULAN_ORDER = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+function switchMode(mode){
+  currentMode = mode;
+  document.getElementById('modeBtnHarian').classList.toggle('active', mode==='harian');
+  document.getElementById('modeBtnMingguan').classList.toggle('active', mode==='mingguan');
+  document.getElementById('modeBtnBulanan').classList.toggle('active', mode==='bulanan');
+  renderDetailSection();
+  renderMissRanking();
+}
+
+function getMingguanRange(){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const day = today.getDay(); // 0=Minggu
+  const diffToMonday = (day===0?6:day-1);
+  const start = new Date(today); start.setDate(start.getDate()-diffToMonday);
+  return {start, end: today};
+}
 
 function populateBulanSelector(){
   const bulanSet = new Set();
@@ -717,29 +820,105 @@ function populateBulanSelector(){
   if(bulanList.length===0){
     select.innerHTML = '<option value="">Tidak ada data</option>';
     currentBulan = null;
-    return;
+  } else {
+    // default: bulan terakhir yang ada datanya
+    currentBulan = bulanList[bulanList.length-1];
+    select.value = currentBulan;
   }
-  // default: bulan terakhir yang ada datanya
-  currentBulan = bulanList[bulanList.length-1];
-  select.value = currentBulan;
+
+  // Harian: default ke tanggal ATA (Arrival Date) terakhir yang ada datanya di sheet
+  const dates = dot2026RowsGlobal.map(r=>r.arrivalDate).filter(Boolean);
+  if(dates.length===0){
+    currentDotDate = null;
+  } else {
+    const maxDate = new Date(Math.max(...dates.map(d=>d.getTime())));
+    currentDotDate = maxDate;
+    const iso = maxDate.getFullYear()+'-'+String(maxDate.getMonth()+1).padStart(2,'0')+'-'+String(maxDate.getDate()).padStart(2,'0');
+    document.getElementById('dotDateSelect').value = iso;
+  }
+
+  const mr = getMingguanRange();
+  document.getElementById('mingguanRangeLabel').textContent = `${fmtDate(mr.start)} — ${fmtDate(mr.end)}`;
 }
 
 function switchBulan(bulan){
   currentBulan = bulan;
-  renderOverviewForPeriod();
-  renderMissRanking();
+  renderAllPeriodStats();
+  if(currentMode==='bulanan'){ renderDetailSection(); renderMissRanking(); }
+}
+
+function switchDotDate(iso){
+  currentDotDate = iso ? new Date(iso+'T00:00:00') : null;
+  renderAllPeriodStats();
+  if(currentMode==='harian'){ renderDetailSection(); renderMissRanking(); }
+}
+
+function getHarianRows(){
+  if(!currentDotDate) return [];
+  return dot2026RowsGlobal.filter(r=>sameDate(r.arrivalDate, currentDotDate));
+}
+
+function getMingguanRows(){
+  const range = getMingguanRange();
+  return dot2026RowsGlobal.filter(r=>{
+    if(!r.arrivalDate) return false;
+    const d = new Date(r.arrivalDate); d.setHours(0,0,0,0);
+    return d>=range.start && d<=range.end;
+  });
+}
+
+function getBulananRows(){
+  return dot2026RowsGlobal.filter(r=>r.bulan===currentBulan);
+}
+
+function getFilteredDotRows(){
+  if(currentMode==='mingguan') return getMingguanRows();
+  if(currentMode==='bulanan') return getBulananRows();
+  return getHarianRows();
+}
+
+function currentPeriodLabel(){
+  if(currentMode==='bulanan') return currentBulan || '-';
+  if(currentMode==='mingguan'){
+    const mr = getMingguanRange();
+    return `${fmtDate(mr.start)} — ${fmtDate(mr.end)}`;
+  }
+  return currentDotDate ? fmtDate(currentDotDate) : '-';
+}
+
+function fillStatBlock(prefixK, prefixT, rows){
+  const k = summarize(rows.filter(rowIsKontainerType));
+  const t = summarize(rows.filter(r=>!rowIsKontainerType(r)));
+  document.getElementById(prefixK).innerHTML = `
+    <div class="stat hit"><div class="num">${k.hit}</div><div class="label">HIT</div></div>
+    <div class="stat miss"><div class="num">${k.miss}</div><div class="label">MISS</div></div>
+    <div class="stat"><div class="num">${k.total}</div><div class="label">TOTAL</div></div>
+    <div class="stat pct"><div class="num">${k.pct}%</div><div class="label">OTD</div></div>
+  `;
+  document.getElementById(prefixT).innerHTML = `
+    <div class="stat hit"><div class="num">${t.hit}</div><div class="label">HIT</div></div>
+    <div class="stat miss"><div class="num">${t.miss}</div><div class="label">MISS</div></div>
+    <div class="stat"><div class="num">${t.total}</div><div class="label">TOTAL</div></div>
+    <div class="stat pct"><div class="num">${t.pct}%</div><div class="label">OTD</div></div>
+  `;
+}
+
+function renderAllPeriodStats(){
+  fillStatBlock('statHarianK', 'statHarianT', getHarianRows());
+  fillStatBlock('statMingguanK', 'statMingguanT', getMingguanRows());
+  fillStatBlock('statBulananK', 'statBulananT', getBulananRows());
 }
 
 function fillDotTable(tbodyId, rows, colsFn, emptyColspan){
   const tbody = document.getElementById(tbodyId);
   tbody.innerHTML = '';
   if(rows.length===0){
-    tbody.innerHTML = `<tr><td colspan="${emptyColspan}" style="text-align:center;color:var(--muted);padding:20px;">Tidak ada data di bulan ini</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${emptyColspan}" style="text-align:center;color:var(--muted);padding:20px;">Tidak ada data di periode ini</td></tr>`;
     return;
   }
   rows
     .slice()
-    .sort((a,b)=> (b.receiptETA||0) - (a.receiptETA||0))
+    .sort((a,b)=> (b.arrivalDate||0) - (a.arrivalDate||0))
     .forEach(r=>{
       const tr = document.createElement('tr');
       tr.innerHTML = colsFn(r);
@@ -747,22 +926,10 @@ function fillDotTable(tbodyId, rows, colsFn, emptyColspan){
     });
 }
 
-function renderOverviewForPeriod(){
-  const filtered = dot2026RowsGlobal.filter(r=>r.bulan===currentBulan);
+function renderDetailSection(){
+  const filtered = getFilteredDotRows().filter(r=>(r.hitMiss||'').toLowerCase()==='miss');
   const kontainerRows = filtered.filter(rowIsKontainerType);
   const truckRows = filtered.filter(r=>!rowIsKontainerType(r));
-
-  const sK = summarize(kontainerRows);
-  document.getElementById('ovHitK').textContent = sK.hit;
-  document.getElementById('ovMissK').textContent = sK.miss;
-  document.getElementById('ovTotalK').textContent = sK.total;
-  document.getElementById('ovPctK').textContent = sK.pct + '%';
-
-  const sT = summarize(truckRows);
-  document.getElementById('ovHitT').textContent = sT.hit;
-  document.getElementById('ovMissT').textContent = sT.miss;
-  document.getElementById('ovTotalT').textContent = sT.total;
-  document.getElementById('ovPctT').textContent = sT.pct + '%';
 
   fillDotTable('dotTableKontainerBody', kontainerRows, r=>{
     const ketClass = r.hitMiss.toLowerCase()==='hit' ? 'ket-hit' : (r.hitMiss.toLowerCase()==='miss' ? 'ket-miss' : '');
@@ -770,7 +937,7 @@ function renderOverviewForPeriod(){
       <td>${r.expedisi}</td>
       <td>${r.distributorName || '-'}</td>
       <td>${r.container || '-'}</td>
-      <td>${fmtDate(r.receiptETA)}</td>
+      <td>${fmtDate(r.arrivalDate)}</td>
       <td>${fmtDate(r.receiptDate)}</td>
       <td>${fmtDate(r.sandar)}</td>
       <td>${fmtDate(r.dooring)}</td>
@@ -784,7 +951,7 @@ function renderOverviewForPeriod(){
       <td>${r.expedisi}</td>
       <td>${r.distributorName || '-'}</td>
       <td>${r.nopol || '-'}</td>
-      <td>${fmtDate(r.receiptETA)}</td>
+      <td>${fmtDate(r.arrivalDate)}</td>
       <td>${fmtDate(r.receiptDate)}</td>
       <td class="${ketClass}">${r.hitMiss || '-'}</td>
     `;
@@ -795,15 +962,17 @@ function renderMissRanking(){
   const container = document.getElementById('missRankingContainer');
   container.innerHTML = '';
 
-  if(!currentBulan){
-    container.innerHTML = '<div class="empty">Tidak ada data</div>';
+  const label = currentPeriodLabel();
+  const filtered = getFilteredDotRows();
+  const missRows = filtered.filter(r=>(r.hitMiss||'').toLowerCase()==='miss');
+
+  if(filtered.length===0){
+    container.innerHTML = '<div class="empty">Tidak ada data di periode ini</div>';
     return;
   }
 
-  const missRows = dot2026RowsGlobal.filter(r=>r.bulan===currentBulan && (r.hitMiss||'').toLowerCase()==='miss');
-
   if(missRows.length===0){
-    container.innerHTML = `<div class="empty">✅ Tidak ada Miss di bulan ${currentBulan}</div>`;
+    container.innerHTML = `<div class="empty">✅ Tidak ada Miss di ${label}</div>`;
     return;
   }
 
@@ -845,9 +1014,9 @@ function renderMissRanking(){
   const distHtml = distRanked.map(([name,count])=>`<div class="detail-row"><b>${name}</b> — ${count}x</div>`).join('') || '<div class="empty" style="padding:8px 0;">-</div>';
 
   container.innerHTML = `
-    <div class="card-sub" style="margin-bottom:8px;font-weight:700;font-size:13px;">🚚 Ekspedisi Miss — ${currentBulan}</div>
+    <div class="card-sub" style="margin-bottom:8px;font-weight:700;font-size:13px;">🚚 Ekspedisi Miss — ${label}</div>
     ${expDetailHtml}
-    <div class="card-sub" style="margin:16px 0 8px;font-weight:700;font-size:13px;">🏢 Distributor Paling Sering Miss — ${currentBulan}</div>
+    <div class="card-sub" style="margin:16px 0 8px;font-weight:700;font-size:13px;">🏢 Distributor Paling Sering Miss — ${label}</div>
     <div class="card">${distHtml}</div>
   `;
 }
@@ -1233,7 +1402,8 @@ async function loadReport(){
     console.warn('Gagal ambil data dot 2026 (Overview):', err.message);
   }
   populateBulanSelector();
-  renderOverviewForPeriod();
+  renderAllPeriodStats();
+  renderDetailSection();
   renderMissRanking();
 }
 
