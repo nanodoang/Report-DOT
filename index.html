@@ -95,6 +95,12 @@
     align-items:center;
   }
 
+  .group-title{
+    font-size:14px;
+    font-weight:800;
+    margin:20px 0 10px;
+  }
+
   .card{
     background:var(--panel);
     border:1px solid var(--border);
@@ -196,6 +202,55 @@
     border-radius:10px;
     border:1px solid var(--border);
   }
+  .period-tabs{
+    display:flex;
+    gap:6px;
+    margin-bottom:14px;
+  }
+  .period-btn{
+    padding:7px 16px;
+    border-radius:20px;
+    font-size:13px;
+    font-weight:700;
+    background:var(--panel2);
+    border:1px solid var(--border);
+    color:var(--muted);
+  }
+  .period-btn.active{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#fff;
+  }
+  .table-wrap{
+    overflow-x:auto;
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    background:var(--panel);
+  }
+  .dot-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:12px;
+    white-space:nowrap;
+  }
+  .dot-table th{
+    text-align:left;
+    padding:9px 10px;
+    background:var(--panel2);
+    color:var(--muted);
+    font-weight:700;
+    position:sticky;
+    top:0;
+    border-bottom:1px solid var(--border);
+  }
+  .dot-table td{
+    padding:8px 10px;
+    border-bottom:1px solid var(--border);
+    color:var(--text);
+  }
+  .dot-table tr:last-child td{border-bottom:none;}
+  .dot-table td.ket-hit{color:var(--hit);font-weight:700;}
+  .dot-table td.ket-miss{color:var(--miss);font-weight:700;}
   .tab-btn{
     flex:1;
     text-align:center;
@@ -247,20 +302,62 @@
 <main>
   <div class="status" id="status">Memuat data...</div>
 
-  <div class="overall" id="overallStats" style="display:none;">
-    <div class="stat hit"><div class="num" id="ovHit">0</div><div class="label">HIT</div></div>
-    <div class="stat miss"><div class="num" id="ovMiss">0</div><div class="label">MISS</div></div>
-    <div class="stat"><div class="num" id="ovTotal">0</div><div class="label">TOTAL</div></div>
-    <div class="stat pct"><div class="num" id="ovPct">0%</div><div class="label">OTD</div></div>
-  </div>
-
   <div class="tabs">
-    <button class="tab-btn active" id="tabBtnExp" onclick="switchTab('exp')">📋 Konfirmasi Ekspedisi</button>
+    <button class="tab-btn active" id="tabBtnOverview" onclick="switchTab('overview')">📊 Overview</button>
+    <button class="tab-btn" id="tabBtnExp" onclick="switchTab('exp')">📋 Konfirmasi Ekspedisi</button>
     <button class="tab-btn" id="tabBtnDist" onclick="switchTab('dist')">🏢 Konfirmasi Distributor</button>
     <button class="tab-btn" id="tabBtnSandar" onclick="switchTab('sandar')">🚢 Konfirmasi Sandar<span class="badge-count" id="sandarBadge" style="display:none;">0</span></button>
   </div>
 
-  <div class="tab-panel active" id="panelExp">
+  <div class="tab-panel active" id="panelOverview">
+    <div class="period-tabs">
+      <button class="period-btn active" id="periodBtnHarian" onclick="switchPeriod('harian')">Harian</button>
+      <button class="period-btn" id="periodBtnMingguan" onclick="switchPeriod('mingguan')">Mingguan</button>
+      <button class="period-btn" id="periodBtnYtd" onclick="switchPeriod('ytd')">YTD</button>
+    </div>
+
+    <div class="group-title">🚢 Kontainer / Laut</div>
+    <div class="overall" id="overallStatsKontainer">
+      <div class="stat hit"><div class="num" id="ovHitK">0</div><div class="label">HIT</div></div>
+      <div class="stat miss"><div class="num" id="ovMissK">0</div><div class="label">MISS</div></div>
+      <div class="stat"><div class="num" id="ovTotalK">0</div><div class="label">TOTAL</div></div>
+      <div class="stat pct"><div class="num" id="ovPctK">0%</div><div class="label">OTD</div></div>
+    </div>
+
+    <div class="group-title">🚛 Truck / Darat</div>
+    <div class="overall" id="overallStatsTruck">
+      <div class="stat hit"><div class="num" id="ovHitT">0</div><div class="label">HIT</div></div>
+      <div class="stat miss"><div class="num" id="ovMissT">0</div><div class="label">MISS</div></div>
+      <div class="stat"><div class="num" id="ovTotalT">0</div><div class="label">TOTAL</div></div>
+      <div class="stat pct"><div class="num" id="ovPctT">0%</div><div class="label">OTD</div></div>
+    </div>
+
+    <div class="section-title" style="margin-top:22px;">Data DOT — Kontainer / Laut</div>
+    <div class="table-wrap">
+      <table class="dot-table" id="dotTableKontainer">
+        <thead>
+          <tr><th>Expedisi</th><th>Tujuan</th><th>No. Kontainer</th><th>ETA</th><th>Receipt Date</th><th>Sandar</th><th>Dooring</th><th>Ket</th></tr>
+        </thead>
+        <tbody id="dotTableKontainerBody"></tbody>
+      </table>
+    </div>
+
+    <div class="section-title">Data DOT — Truck / Darat</div>
+    <div class="table-wrap">
+      <table class="dot-table" id="dotTableTruck">
+        <thead>
+          <tr><th>Expedisi</th><th>Tujuan</th><th>Nopol</th><th>ETA</th><th>Receipt Date</th><th>Ket</th></tr>
+        </thead>
+        <tbody id="dotTableTruckBody"></tbody>
+      </table>
+    </div>
+
+    <div class="section-title">🚨 Ekspedisi &amp; Distributor Paling Sering Miss (per Bulan)</div>
+    <div id="missRankingContainer"></div>
+
+  </div>
+
+  <div class="tab-panel" id="panelExp">
     <div id="expedisiList"></div>
   </div>
   <div class="tab-panel" id="panelDist">
@@ -276,6 +373,62 @@
 const SHEET_ID = '1Jz-0kcWJh1ltcqLy_QfL7he9dauXUf4gonOXdwhMfrc';
 const GID = '1495795913'; // tab "Plan Delivery 2026"
 const CSV_URL = `https://docs.google.com/spreadsheets/d/e/2PACX-1vSGz9K1a7v-1BFLSWdCjrboAwAcg8w1fYK98pdGhdEHqj_q9hnqvRWjPdt1UubexOQ_IgOy7QGPS-3G/pub?gid=${GID}&single=true&output=csv`;
+
+// Sheet "dot 2026" — sumber data KHUSUS tab Overview (Hit/Miss dari kolom sheet langsung)
+const CSV_URL_DOT2026 = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSr5a-IuvbhOjfsbATYVtgSyQ5YVRGYK2nYgNC7yxhQwHnnsUbndjYVZ0HsQ00qcu8K-HEVVq_SLAyh/pub?gid=934115720&single=true&output=csv';
+// header di row 8 -> index 7, data mulai row 9 -> index 8
+const DOT2026_HEADER_INDEX = 7;
+const DOT2026_DATA_START = 8;
+const COL_DOT2026 = {
+  KOTA:1, BULAN:2, NOPOL:6, CONTAINER:7, EXPEDISI:8, VEHICLE_TYPE:9, DELIVERY_NAME:10,
+  SHIP_DATE:11, SHOW_ETA:12, RECEIPT_ETA:13, ARRIVAL_DATE:14, RECEIPT_DATE:15,
+  KETERANGAN:16, ISSUE:17, HIT_MISS:18, SANDAR:24, DOORING:25, TYPE:30
+};
+
+async function fetchDot2026(){
+  const rows = [];
+  try{
+    const res = await fetch(CSV_URL_DOT2026);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const csvText = await res.text();
+    const parsed = Papa.parse(csvText, {skipEmptyLines:false});
+    const dataRows = parsed.data.slice(DOT2026_DATA_START);
+    dataRows.forEach(r=>{
+      const nopol = (r[COL_DOT2026.NOPOL]||'').toString().trim();
+      const container = (r[COL_DOT2026.CONTAINER]||'').toString().trim();
+      const expedisi = (r[COL_DOT2026.EXPEDISI]||'').toString().trim();
+      const deliveryName = (r[COL_DOT2026.DELIVERY_NAME]||'').toString().trim();
+      if(!nopol && !container && !expedisi) return;
+      rows.push({
+        nopol, container,
+        expedisi: expedisi || 'TANPA EKSPEDISI',
+        vehicleType: r[COL_DOT2026.VEHICLE_TYPE],
+        deliveryName,
+        distributorName: extractDistributor(deliveryName),
+        bulan: (r[COL_DOT2026.BULAN]||'').toString().trim(),
+        shipDate: parseIDDate(r[COL_DOT2026.SHIP_DATE]),
+        receiptETA: parseIDDate(r[COL_DOT2026.RECEIPT_ETA]),
+        arrivalDate: parseIDDate(r[COL_DOT2026.ARRIVAL_DATE]),
+        receiptDate: parseIDDate(r[COL_DOT2026.RECEIPT_DATE]),
+        keterangan: r[COL_DOT2026.KETERANGAN],
+        issue: r[COL_DOT2026.ISSUE],
+        hitMiss: (r[COL_DOT2026.HIT_MISS]||'').toString().trim(),
+        sandar: parseIDDate(r[COL_DOT2026.SANDAR]),
+        dooring: parseIDDate(r[COL_DOT2026.DOORING]),
+        type: (r[COL_DOT2026.TYPE]||'').toString().trim().toUpperCase()
+      });
+    });
+  }catch(err){
+    console.warn('Gagal ambil data dot 2026:', err.message);
+  }
+  return rows;
+}
+
+function rowIsKontainerType(r){
+  if(r.type) return r.type === 'KONTENER';
+  return !!r.container; // fallback kalau kolom TYPE kosong
+}
+
 
 // header di row 1, data mulai row 2
 const SHEET_ID2 = '1eqhRDFXQysByjjKSkYziJ9zmubGWm2uZCWZpPaARho8';
@@ -522,12 +675,158 @@ const COL = {
 };
 
 function switchTab(tab){
+  document.getElementById('tabBtnOverview').classList.toggle('active', tab==='overview');
   document.getElementById('tabBtnExp').classList.toggle('active', tab==='exp');
   document.getElementById('tabBtnDist').classList.toggle('active', tab==='dist');
   document.getElementById('tabBtnSandar').classList.toggle('active', tab==='sandar');
+  document.getElementById('panelOverview').classList.toggle('active', tab==='overview');
   document.getElementById('panelExp').classList.toggle('active', tab==='exp');
   document.getElementById('panelDist').classList.toggle('active', tab==='dist');
   document.getElementById('panelSandar').classList.toggle('active', tab==='sandar');
+}
+
+let currentPeriod = 'harian';
+let allRowsGlobal = [];
+let kapalSandarRowsGlobal = [];
+let dot2026RowsGlobal = [];
+
+function switchPeriod(period){
+  currentPeriod = period;
+  document.getElementById('periodBtnHarian').classList.toggle('active', period==='harian');
+  document.getElementById('periodBtnMingguan').classList.toggle('active', period==='mingguan');
+  document.getElementById('periodBtnYtd').classList.toggle('active', period==='ytd');
+  renderOverviewForPeriod();
+}
+
+function getPeriodRange(period){
+  const today = new Date(); today.setHours(0,0,0,0);
+  if(period==='harian') return {start: today, end: today};
+  if(period==='mingguan'){
+    const day = today.getDay(); // 0=Minggu
+    const diffToMonday = (day===0?6:day-1);
+    const start = new Date(today); start.setDate(start.getDate()-diffToMonday);
+    return {start, end: today};
+  }
+  // ytd
+  const start = new Date(today.getFullYear(),0,1);
+  return {start, end: today};
+}
+
+function inRange(date, range){
+  if(!date) return false;
+  const d = new Date(date); d.setHours(0,0,0,0);
+  return d>=range.start && d<=range.end;
+}
+
+function fillDotTable(tbodyId, rows, colsFn, emptyColspan){
+  const tbody = document.getElementById(tbodyId);
+  tbody.innerHTML = '';
+  if(rows.length===0){
+    tbody.innerHTML = `<tr><td colspan="${emptyColspan}" style="text-align:center;color:var(--muted);padding:20px;">Tidak ada data di periode ini</td></tr>`;
+    return;
+  }
+  rows
+    .slice()
+    .sort((a,b)=> (b.receiptETA||0) - (a.receiptETA||0))
+    .forEach(r=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = colsFn(r);
+      tbody.appendChild(tr);
+    });
+}
+
+function renderOverviewForPeriod(){
+  const range = getPeriodRange(currentPeriod);
+  const filtered = dot2026RowsGlobal.filter(r=>inRange(r.receiptETA, range));
+  const kontainerRows = filtered.filter(rowIsKontainerType);
+  const truckRows = filtered.filter(r=>!rowIsKontainerType(r));
+
+  const sK = summarize(kontainerRows);
+  document.getElementById('ovHitK').textContent = sK.hit;
+  document.getElementById('ovMissK').textContent = sK.miss;
+  document.getElementById('ovTotalK').textContent = sK.total;
+  document.getElementById('ovPctK').textContent = sK.pct + '%';
+
+  const sT = summarize(truckRows);
+  document.getElementById('ovHitT').textContent = sT.hit;
+  document.getElementById('ovMissT').textContent = sT.miss;
+  document.getElementById('ovTotalT').textContent = sT.total;
+  document.getElementById('ovPctT').textContent = sT.pct + '%';
+
+  fillDotTable('dotTableKontainerBody', kontainerRows, r=>{
+    const ketClass = r.hitMiss.toLowerCase()==='hit' ? 'ket-hit' : (r.hitMiss.toLowerCase()==='miss' ? 'ket-miss' : '');
+    return `
+      <td>${r.expedisi}</td>
+      <td>${r.distributorName || '-'}</td>
+      <td>${r.container || '-'}</td>
+      <td>${fmtDate(r.receiptETA)}</td>
+      <td>${fmtDate(r.receiptDate)}</td>
+      <td>${fmtDate(r.sandar)}</td>
+      <td>${fmtDate(r.dooring)}</td>
+      <td class="${ketClass}">${r.hitMiss || '-'}</td>
+    `;
+  }, 8);
+
+  fillDotTable('dotTableTruckBody', truckRows, r=>{
+    const ketClass = r.hitMiss.toLowerCase()==='hit' ? 'ket-hit' : (r.hitMiss.toLowerCase()==='miss' ? 'ket-miss' : '');
+    return `
+      <td>${r.expedisi}</td>
+      <td>${r.distributorName || '-'}</td>
+      <td>${r.nopol || '-'}</td>
+      <td>${fmtDate(r.receiptETA)}</td>
+      <td>${fmtDate(r.receiptDate)}</td>
+      <td class="${ketClass}">${r.hitMiss || '-'}</td>
+    `;
+  }, 6);
+}
+
+const BULAN_ORDER = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+function renderMissRanking(){
+  const missRows = dot2026RowsGlobal.filter(r=>(r.hitMiss||'').toLowerCase()==='miss');
+  const byMonth = {};
+  missRows.forEach(r=>{
+    const month = r.bulan || 'Tidak diketahui';
+    if(!byMonth[month]) byMonth[month] = {expedisi:{}, distributor:{}};
+    const exp = r.expedisi || 'Tidak diketahui';
+    byMonth[month].expedisi[exp] = (byMonth[month].expedisi[exp]||0)+1;
+    const dist = r.distributorName || 'Tidak diketahui';
+    byMonth[month].distributor[dist] = (byMonth[month].distributor[dist]||0)+1;
+  });
+
+  const months = Object.keys(byMonth).sort((a,b)=>{
+    const ia = BULAN_ORDER.indexOf(a), ib = BULAN_ORDER.indexOf(b);
+    return (ia===-1?99:ia) - (ib===-1?99:ib);
+  });
+
+  const container = document.getElementById('missRankingContainer');
+  container.innerHTML = '';
+
+  if(months.length===0){
+    container.innerHTML = '<div class="empty">Tidak ada data Miss</div>';
+    return;
+  }
+
+  months.forEach(month=>{
+    const expEntries = Object.entries(byMonth[month].expedisi).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    const distEntries = Object.entries(byMonth[month].distributor).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = `
+      <div class="card-title" style="margin-bottom:10px;">${month}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <div class="card-sub" style="margin-bottom:6px;font-weight:700;">Ekspedisi Miss</div>
+          ${expEntries.map(([name,count])=>`<div class="detail-row"><b>${name}</b> — ${count}x</div>`).join('') || '<div class="empty" style="padding:8px 0;">-</div>'}
+        </div>
+        <div>
+          <div class="card-sub" style="margin-bottom:6px;font-weight:700;">Distributor Miss</div>
+          ${distEntries.map(([name,count])=>`<div class="detail-row"><b>${name}</b> — ${count}x</div>`).join('') || '<div class="empty" style="padding:8px 0;">-</div>'}
+        </div>
+      </div>
+    `;
+    container.appendChild(div);
+  });
 }
 
 function isKontainer(r){
@@ -779,7 +1078,6 @@ async function loadReport(){
   const dateStrDisplay = fmtDate(targetDate);
 
   statusEl.textContent = 'Memuat data dari sheet...';
-  document.getElementById('overallStats').style.display = 'none';
   document.getElementById('expedisiList').innerHTML = '';
   document.getElementById('distributorList').innerHTML = '';
   document.getElementById('sandarList').innerHTML = '';
@@ -898,18 +1196,21 @@ async function loadReport(){
   }
 
   if(todayRows.length===0){
-    statusEl.textContent = `Tidak ada data dengan Receipt ETA = ${dateStrDisplay}`;
-    return;
+    statusEl.textContent = `Tidak ada data dengan Receipt ETA = ${dateStrDisplay} (tab Konfirmasi Ekspedisi kosong, tab lain tetap jalan)`;
+  } else {
+    statusEl.textContent = `Menampilkan ${todayRows.length} pengiriman dengan estimasi sampai ${dateStrDisplay}`;
   }
 
-  statusEl.textContent = `Menampilkan ${todayRows.length} pengiriman dengan estimasi sampai ${dateStrDisplay}`;
+  allRowsGlobal = rows;
+  kapalSandarRowsGlobal = kapalSandarRows;
 
-  const overall = summarize(todayRows);
-  document.getElementById('overallStats').style.display = 'grid';
-  document.getElementById('ovHit').textContent = overall.hit;
-  document.getElementById('ovMiss').textContent = overall.miss;
-  document.getElementById('ovTotal').textContent = overall.total;
-  document.getElementById('ovPct').textContent = overall.pct + '%';
+  try{
+    dot2026RowsGlobal = await fetchDot2026();
+  }catch(err){
+    console.warn('Gagal ambil data dot 2026 (Overview):', err.message);
+  }
+  renderOverviewForPeriod();
+  renderMissRanking();
 }
 
 document.getElementById('reportDate').valueAsDate = new Date();
