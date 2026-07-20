@@ -1377,9 +1377,12 @@ async function loadReport(){
 
   // Kontainer yang belum ada ATA -> perlu konfirmasi sandar ke ekspedisi
   // (kalau ETA sudah diisi, hanya yang ETA <= hari ini; kalau ETA belum diisi, tetap tampil)
+  // Kontainer yang nomor kontainernya sendiri belum ada (masih rencana/booking) di-skip -
+  // nggak ada gunanya nanya status sandar kalau kontainernya belum ditentukan.
   const now = new Date();
   const byExpedisiSandarOverdue = {};
   kapalSandarRows.forEach(r=>{
+    if(!r.container) return; // belum ada No. Container, skip
     if(r.ata) return; // sudah ada ATA, sudah beres
     if(r.eta && !isOnOrBefore(r.eta, now)) return; // ETA di masa depan, belum waktunya ditagih
     const key = r.expedisi || 'TANPA EKSPEDISI';
