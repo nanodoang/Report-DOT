@@ -628,7 +628,15 @@ function parseUSDate(str){
   str = str.toString().trim();
   const m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if(!m) return null;
-  return new Date(parseInt(m[3]), parseInt(m[1])-1, parseInt(m[2])); // M/D/YYYY
+  const a = parseInt(m[1]), b = parseInt(m[2]), year = parseInt(m[3]);
+  // Deteksi otomatis: kalau bagian pertama >12, itu pasti tanggal (D/M/Y).
+  // Kalau bagian kedua >12, itu pasti bulan di posisi pertama (M/D/Y).
+  // Kalau dua-duanya <=12 (ambigu), default D/M/Y (mayoritas sheet lain pakai format ini).
+  let day, month;
+  if(a>12){ day=a; month=b; }
+  else if(b>12){ month=a; day=b; }
+  else { day=a; month=b; } // default D/M/Y
+  return new Date(year, month-1, day);
 }
 
 async function fetchKapalSandar(){
@@ -664,12 +672,12 @@ async function fetchKapalSandar(){
 
 function buildKonfirmasiSandarText(expedisi, items){
   let t = `📋 *KONFIRMASI STATUS SANDAR KONTAINER*\n*${expedisi}*\n\n`;
-  t += `Kontainer berikut ETA-nya sudah lewat tapi belum ada laporan SANDAR. Mohon konfirmasi sudah sandar atau belum:\n\n`;
+  t += `Kontainer berikut belum ada laporan SANDAR. Mohon konfirmasi sudah sandar atau belum:\n\n`;
   items.forEach((it,i)=>{
-    const days = daysBetween(new Date(it.eta), new Date());
+    const days = it.eta ? daysBetween(new Date(it.eta), new Date()) : null;
     t += `${i+1}. No. Kontainer: *${it.container}* — ${extractDestination(it.tujuan) || it.tujuan}\n`;
     if(it.kapal) t += `   Kapal: ${it.kapal}\n`;
-    t += `   ETA jadwal: ${fmtDate(it.eta)} (${days} hari lewat)\n`;
+    t += `   ETA jadwal: ${it.eta ? fmtDate(it.eta)+' ('+days+' hari lewat)' : 'belum ada ETA'}\n`;
   });
   t += `\nMohon info tanggal sandarnya, terima kasih 🙏`;
   return t.trim();
@@ -685,7 +693,7 @@ function renderSandarCard(container, expedisi, items){
     <div class="card-top">
       <div>
         <div class="card-title">${expedisi}</div>
-        <div class="card-sub">🚢 ${items.length} kontainer — ETA lewat, ATA belum diisi</div>
+        <div class="card-sub">🚢 ${items.length} kontainer — belum ada laporan sandar</div>
       </div>
     </div>
     <input class="phone-input" type="tel" placeholder="No. WA (628xxxxxxxxxx)" value="${phone}" data-type="sandar" data-key="${expedisi.replace(/"/g,'&quot;')}">
@@ -695,10 +703,10 @@ function renderSandarCard(container, expedisi, items){
     <details>
       <summary>Lihat detail (${items.length} kontainer)</summary>
       ${items.map(it=>{
-        const days = daysBetween(new Date(it.eta), new Date());
+        const days = it.eta ? daysBetween(new Date(it.eta), new Date()) : null;
         const dest = extractDestination(it.tujuan) || it.tujuan || '';
         return `<div class="detail-row">
-          <b>${it.container}</b>${dest?' — '+dest:''}${it.kapal?' — '+it.kapal:''} — ETA: ${fmtDate(it.eta)} (${days} hari lewat)
+          <b>${it.container}</b>${dest?' — '+dest:''}${it.kapal?' — '+it.kapal:''} — ETA: ${it.eta ? fmtDate(it.eta)+' ('+days+' hari lewat)' : 'belum ada ETA'}
         </div>`;
       }).join('')}
     </details>
@@ -1372,12 +1380,13 @@ async function loadReport(){
     (byExpedisi[r.expedisi] = byExpedisi[r.expedisi]||[]).push(r);
   });
 
-  // Kontainer yang ETA-nya sudah lewat tapi ATA masih kosong -> perlu konfirmasi sandar ke ekspedisi
+  // Kontainer yang belum ada ATA -> perlu konfirmasi sandar ke ekspedisi
+  // (kalau ETA sudah diisi, hanya yang ETA <= hari ini; kalau ETA belum diisi, tetap tampil)
   const now = new Date();
   const byExpedisiSandarOverdue = {};
   kapalSandarRows.forEach(r=>{
-    if(!r.eta || r.ata) return;
-    if(!isOnOrBefore(r.eta, now)) return;
+    if(r.ata) return; // sudah ada ATA, sudah beres
+    if(r.eta && !isOnOrBefore(r.eta, now)) return; // ETA di masa depan, belum waktunya ditagih
     const key = r.expedisi || 'TANPA EKSPEDISI';
     (byExpedisiSandarOverdue[key] = byExpedisiSandarOverdue[key]||[]).push(r);
   });
