@@ -699,13 +699,25 @@ async function fetchKapalSandar(){
 function buildKonfirmasiSandarText(expedisi, items){
   let t = `📋 *KONFIRMASI STATUS SANDAR KONTAINER*\n*${expedisi}*\n\n`;
   t += `Kontainer berikut belum ada laporan SANDAR. Mohon konfirmasi sudah sandar atau belum:\n\n`;
-  items.forEach((it,i)=>{
-    const days = it.eta ? daysBetween(new Date(it.eta), new Date()) : null;
-    t += `${i+1}. No. Kontainer: *${it.container}* — ${extractDestination(it.tujuan) || it.tujuan}\n`;
-    if(it.kapal) t += `   Kapal: ${it.kapal}\n`;
-    t += `   ETA jadwal: ${it.eta ? fmtDate(it.eta)+' ('+days+' hari lewat)' : 'belum ada ETA'}\n`;
+
+  // Kelompokkan per distributor (nama sebelum " - " di kolom Tujuan), case-insensitive -> 1 distributor = 1 baris
+  const grouped = groupByCaseInsensitive(items, it => extractDistributor(it.tujuan) || it.tujuan || 'TANPA NAMA');
+
+  Object.values(grouped).forEach((g,i)=>{
+    const group = g.items;
+    const containers = group.map(it=>it.container).join(', ');
+    const kapals = [...new Set(group.map(it=>it.kapal).filter(Boolean))].join(', ');
+    const daysList = group.map(it=> it.eta ? daysBetween(new Date(it.eta), new Date()) : null).filter(d=>d!==null);
+    const maxDays = daysList.length ? Math.max(...daysList) : null;
+    const etaDate = group[0].eta;
+
+    t += `${i+1}. ${g.label}\n`;
+    t += `   No. Kontainer: ${containers}\n`;
+    if(kapals) t += `   Kapal: ${kapals}\n`;
+    t += `   ETA jadwal: ${etaDate ? fmtDate(etaDate)+(maxDays!==null?' ('+maxDays+' hari lewat)':'') : 'belum ada ETA'}\n\n`;
   });
-  t += `\nMohon info tanggal sandarnya, terima kasih 🙏`;
+
+  t += `Mohon info tanggal sandar nya dan segera di update di link report, terima kasih 🙏`;
   return t.trim();
 }
 
@@ -1113,6 +1125,18 @@ function extractDistributor(name){
   if(!name) return 'TANPA NAMA';
   return name.split(' - ')[0].trim();
 }
+
+// Group items by key, case-insensitive. Nama tampilan pakai casing yang PERTAMA muncul.
+function groupByCaseInsensitive(items, keyFn){
+  const groups = {};
+  items.forEach(item=>{
+    const rawKey = (keyFn(item)||'').toString().trim();
+    const upperKey = rawKey.toUpperCase();
+    if(!groups[upperKey]) groups[upperKey] = { label: rawKey, items: [] };
+    groups[upperKey].items.push(item);
+  });
+  return groups;
+}
 function extractDestination(name){
   if(!name) return '';
   const idx = name.indexOf(' - ');
@@ -1387,60 +1411,55 @@ async function loadReport(){
   const todayRows = rows.filter(r=>sameDate(r.receiptETA, targetDate));
 
   // Tab Distributor: independen dari tanggal, tampilkan SEMUA yang belum bongkar saat ini
-  const byDistributorPending = {};
-  distributorPendingRows.forEach(it=>{
-    const d = extractDistributor(it.destination);
-    (byDistributorPending[d] = byDistributorPending[d]||[]).push(it);
-  });
   const distContainer = document.getElementById('distributorList');
-  if(Object.keys(byDistributorPending).length===0){
+  const groupedDistPending = groupByCaseInsensitive(distributorPendingRows, it => extractDistributor(it.destination));
+  const distKeys = Object.keys(groupedDistPending);
+  if(distKeys.length===0){
     distContainer.innerHTML = '<div class="empty">✅ Tidak ada kiriman yang belum bongkar</div>';
   } else {
-    Object.keys(byDistributorPending).sort().forEach(key=>{
-      renderDistributorPendingCard(distContainer, key, byDistributorPending[key]);
+    distKeys.sort((a,b)=>groupedDistPending[a].label.localeCompare(groupedDistPending[b].label)).forEach(key=>{
+      renderDistributorPendingCard(distContainer, groupedDistPending[key].label, groupedDistPending[key].items);
     });
   }
 
-  const byExpedisi = {};
-  todayRows.forEach(r=>{
-    (byExpedisi[r.expedisi] = byExpedisi[r.expedisi]||[]).push(r);
-  });
+  const groupedExpedisi = groupByCaseInsensitive(todayRows, r => r.expedisi);
 
   // Kontainer yang ETA-nya sudah lewat tapi ATA masih kosong -> perlu konfirmasi sandar ke ekspedisi.
   // Kontainer tanpa ETA sama sekali di-skip (nggak ada dasar buat bilang "sudah lewat").
   // Kontainer tanpa No. Container juga di-skip (masih rencana/booking, belum ada unit fisiknya).
   const now = new Date();
-  const byExpedisiSandarOverdue = {};
-  kapalSandarRows.forEach(r=>{
-    if(!r.container) return; // belum ada No. Container, skip
-    if(!r.eta) return; // belum ada ETA, skip
-    if(r.ata) return; // sudah ada ATA, sudah beres
-    if(!isOnOrBefore(r.eta, now)) return; // ETA di masa depan, belum waktunya ditagih
-    const key = r.expedisi || 'TANPA EKSPEDISI';
-    (byExpedisiSandarOverdue[key] = byExpedisiSandarOverdue[key]||[]).push(r);
+  const sandarOverdueRaw = kapalSandarRows.filter(r=>{
+    if(!r.container) return false; // belum ada No. Container, skip
+    if(!r.eta) return false; // belum ada ETA, skip
+    if(r.ata) return false; // sudah ada ATA, sudah beres
+    if(!isOnOrBefore(r.eta, now)) return false; // ETA di masa depan, belum waktunya ditagih
+    return true;
   });
+  const groupedSandarOverdue = groupByCaseInsensitive(sandarOverdueRaw, r => r.expedisi || 'TANPA EKSPEDISI');
 
   const expedisiContainer = document.getElementById('expedisiList');
-  if(Object.keys(byExpedisi).length===0){
+  const expedisiKeys = Object.keys(groupedExpedisi);
+  if(expedisiKeys.length===0){
     expedisiContainer.innerHTML = '<div class="empty">Tidak ada data dengan Receipt ETA di tanggal ini</div>';
   } else {
-    Object.keys(byExpedisi).sort().forEach(key=>{
-      renderGroupCard(expedisiContainer, 'exp', key, byExpedisi[key], dateStrDisplay, buildExpedisiText, null, buildKonfirmasiText);
+    expedisiKeys.sort((a,b)=>groupedExpedisi[a].label.localeCompare(groupedExpedisi[b].label)).forEach(key=>{
+      const g = groupedExpedisi[key];
+      renderGroupCard(expedisiContainer, 'exp', g.label, g.items, dateStrDisplay, buildExpedisiText, null, buildKonfirmasiText);
     });
   }
 
   // Tab Konfirmasi Sandar: independen dari tanggal terpilih
   const sandarContainer = document.getElementById('sandarList');
   const sandarBadge = document.getElementById('sandarBadge');
-  const sandarKeys = Object.keys(byExpedisiSandarOverdue);
+  const sandarKeys = Object.keys(groupedSandarOverdue);
   if(sandarKeys.length===0){
     sandarBadge.style.display = 'none';
     sandarContainer.innerHTML = '<div class="empty">✅ Semua kontainer sudah ada laporan sandar</div>';
   } else {
     sandarBadge.style.display = 'inline-block';
-    sandarBadge.textContent = sandarKeys.reduce((sum,k)=>sum+byExpedisiSandarOverdue[k].length, 0);
-    sandarKeys.sort().forEach(key=>{
-      renderSandarCard(sandarContainer, key, byExpedisiSandarOverdue[key]);
+    sandarBadge.textContent = sandarKeys.reduce((sum,k)=>sum+groupedSandarOverdue[k].items.length, 0);
+    sandarKeys.sort((a,b)=>groupedSandarOverdue[a].label.localeCompare(groupedSandarOverdue[b].label)).forEach(key=>{
+      renderSandarCard(sandarContainer, groupedSandarOverdue[key].label, groupedSandarOverdue[key].items);
     });
   }
 
