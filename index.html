@@ -629,7 +629,7 @@ async function fetchBongkarSheet(url, col, type){
 const CSV_URL_KAPAL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSyGGS79BtDGByCWf2bK5M_3PwOKgA9klsYG1n_227wrJp4Ky8E9H_wmVaIdOPF0dXYIlG4zSn_BP_F/pub?gid=0&single=true&output=csv';
 // header row 1, data mulai row 2
 // 0 Tanggal,1 Tujuan,2 Truck Type,3 Expedisi,4 Kapal,5 No.Container,6 ETD,7 ATD,8 ETA,9 ATA,10 Dooring,11 Sumber
-const COL_KAPAL = { TANGGAL:0, TUJUAN:1, TRUCK_TYPE:2, EXPEDISI:3, KAPAL:4, CONTAINER:5, ETD:6, ATD:7, ETA:8, ATA:9, DOORING:10 };
+const COL_KAPAL = { KODE_UNIK:0, TANGGAL:1, TUJUAN:2, TRUCK_TYPE:3, EXPEDISI:4, KAPAL:5, CONTAINER:6, ETD:7, ATD:8, ETA:9, ATA:10, DOORING:11 };
 
 // Kolom "Tanggal" (tgl order) terbukti konsisten M/D/Y sepanjang sheet (baris berurutan kronologis).
 function parseTanggalMDY(str){
