@@ -514,6 +514,14 @@ async function fetchDot2026(){
       const expedisi = (r[COL_DOT2026.EXPEDISI]||'').toString().trim();
       const deliveryName = (r[COL_DOT2026.DELIVERY_NAME]||'').toString().trim();
       if(!nopol && !container && !expedisi) return;
+      const receiptETA = parseIDDate(r[COL_DOT2026.RECEIPT_ETA]);
+      const sandar = parseIDDate(r[COL_DOT2026.SANDAR]);
+      let hitMiss = (r[COL_DOT2026.HIT_MISS]||'').toString().trim();
+      // Kalau tanggal Sandar ada isinya: Sandar <= ETA -> Hit, selain itu Miss.
+      // Kalau Sandar kosong: tetap pakai nilai HIT/MISS dari kolom S seperti biasa.
+      if(sandar && receiptETA){
+        hitMiss = sandar <= receiptETA ? 'Hit' : 'Miss';
+      }
       rows.push({
         nopol, container,
         expedisi: expedisi || 'TANPA EKSPEDISI',
@@ -522,13 +530,13 @@ async function fetchDot2026(){
         distributorName: extractDistributor(deliveryName),
         bulan: (r[COL_DOT2026.BULAN]||'').toString().trim(),
         shipDate: parseIDDate(r[COL_DOT2026.SHIP_DATE]),
-        receiptETA: parseIDDate(r[COL_DOT2026.RECEIPT_ETA]),
+        receiptETA: receiptETA,
         arrivalDate: parseIDDate(r[COL_DOT2026.ARRIVAL_DATE]),
         receiptDate: parseIDDate(r[COL_DOT2026.RECEIPT_DATE]),
         keterangan: r[COL_DOT2026.KETERANGAN],
         issue: r[COL_DOT2026.ISSUE],
-        hitMiss: (r[COL_DOT2026.HIT_MISS]||'').toString().trim(),
-        sandar: parseIDDate(r[COL_DOT2026.SANDAR]),
+        hitMiss: hitMiss,
+        sandar: sandar,
         dooring: parseIDDate(r[COL_DOT2026.DOORING]),
         week: (r[COL_DOT2026.WEEK]||'').toString().trim(),
         type: (r[COL_DOT2026.TYPE]||'').toString().trim().toUpperCase()
