@@ -1216,16 +1216,16 @@ function buildKonfirmasiText(name, rows, dateStr){
 }
 
 function buildDistributorPendingText(distributorName, items){
-  let t = `🚚 *INFO ARMADA TIBA - MOHON SEGERA DIBONGKAR*\n*${distributorName}*\n\n`;
+  let t = `Yth. Bapak/Ibu\n*${distributorName}*\n\n`;
+  t += `Menginformasikan kontainer/unit berikut sudah *SANDAR/TIBA* di tujuan:\n\n`;
   items.forEach((it,i)=>{
     const days = it.arrivalDate ? daysBetween(new Date(it.arrivalDate), new Date()) : null;
-    const label = it.type==='kontainer' ? 'No. Kontainer' : 'Nopol';
     const kota = extractDestination(it.destination) || it.destination || '';
-    t += `${i+1}. ${label}: *${it.identifier}*${kota?' — '+kota:''} (${it.expedisi})\n`;
-    if(it.kapal) t += `   Kapal: ${it.kapal}\n`;
-    t += `   ${it.type==='kontainer'?'Sandar':'Tiba gudang'}: ${fmtDate(it.arrivalDate)}${days!==null?` (${days} hari lalu)`:''}\n`;
+    const statusLabel = it.type==='kontainer' ? 'Sandar' : 'Tiba';
+    t += `${i+1}. ${it.identifier}${kota?' ('+kota+')':''}${it.kapal?' — Kapal '+it.kapal:''} — ${statusLabel} ${fmtDate(it.arrivalDate)}${days!==null?` (${days} hari lalu)`:''}\n`;
   });
-  t += `\nMohon segera dijadwalkan bongkar, terima kasih 🙏`;
+  t += `\nMohon bantuannya untuk segera dikoordinasikan jadwal bongkarnya, agar tidak menimbulkan biaya storage/demurrage tambahan.\n\n`;
+  t += `Terima kasih atas kerja samanya 🙏`;
   return t.trim();
 }
 
