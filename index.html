@@ -399,6 +399,7 @@
     <button class="tab-btn" id="tabBtnExp" onclick="switchTab('exp')">📋 Konfirmasi Ekspedisi</button>
     <button class="tab-btn" id="tabBtnDist" onclick="switchTab('dist')">🏢 Konfirmasi Distributor</button>
     <button class="tab-btn" id="tabBtnSandar" onclick="switchTab('sandar')">🚢 Konfirmasi Sandar<span class="badge-count" id="sandarBadge" style="display:none;">0</span></button>
+    <button class="tab-btn" id="tabBtnDooring" onclick="switchTab('dooring')">🚪 Konfirmasi Dooring<span class="badge-count" id="dooringBadge" style="display:none;">0</span></button>
   </div>
 
   <div class="tab-panel active" id="panelOverview">
@@ -481,6 +482,10 @@
   <div class="tab-panel" id="panelSandar">
     <div class="status" style="margin-top:0;">Kontainer yang ETA-nya sudah lewat tapi ATA (tanggal sandar aktual) belum diisi</div>
     <div id="sandarList"></div>
+  </div>
+  <div class="tab-panel" id="panelDooring">
+    <div class="status" style="margin-top:0;">Kontainer yang sudah SANDAR (ATA terisi) tapi Dooring-nya belum diisi</div>
+    <div id="dooringList"></div>
   </div>
 </main>
 
@@ -768,6 +773,70 @@ function renderSandarCard(container, expedisi, items){
   container.appendChild(div);
 }
 
+function buildKonfirmasiDooringText(expedisi, items){
+  let t = `📋 *KONFIRMASI STATUS DOORING KONTAINER*\n*${expedisi}*\n\n`;
+  t += `Kontainer berikut sudah SANDAR tapi belum ada laporan DOORING. Mohon konfirmasi sudah dooring atau belum:\n\n`;
+
+  const grouped = groupByCaseInsensitive(items, it => extractDistributor(it.tujuan) || it.tujuan || 'TANPA NAMA');
+
+  Object.values(grouped).forEach((g,i)=>{
+    const group = g.items;
+    const containers = group.map(it=>it.container).join(', ');
+    const kapals = [...new Set(group.map(it=>it.kapal).filter(Boolean))].join(', ');
+    const daysList = group.map(it=> it.ata ? daysBetween(new Date(it.ata), new Date()) : null).filter(d=>d!==null);
+    const maxDays = daysList.length ? Math.max(...daysList) : null;
+    const ataDate = group[0].ata;
+
+    t += `${i+1}. ${g.label}\n`;
+    t += `   No. Kontainer: ${containers}\n`;
+    if(kapals) t += `   Kapal: ${kapals}\n`;
+    t += `   Sandar (ATA): ${ataDate ? fmtDate(ataDate)+(maxDays!==null?' ('+maxDays+' hari lalu)':'') : '-'}\n\n`;
+  });
+
+  t += `Mohon info tanggal dooring nya dan segera di update di link report, terima kasih 🙏`;
+  return t.trim();
+}
+
+function renderDooringCard(container, expedisi, items){
+  const phone = getPhone('dooring', expedisi);
+  const text = buildKonfirmasiDooringText(expedisi, items);
+
+  const div = document.createElement('div');
+  div.className = 'card';
+  div.innerHTML = `
+    <div class="card-top">
+      <div>
+        <div class="card-title">${expedisi}</div>
+        <div class="card-sub">🚪 ${items.length} kontainer — sudah sandar, belum ada laporan dooring</div>
+      </div>
+    </div>
+    <input class="phone-input" type="tel" placeholder="No. WA (628xxxxxxxxxx)" value="${phone}" data-type="dooring" data-key="${expedisi.replace(/"/g,'&quot;')}">
+    <div class="card-actions">
+      <a class="btn wa-sandar" style="flex:1;" target="_blank" href="${waLink(phone,text)}">🚪 Konfirmasi Dooring</a>
+    </div>
+    <details>
+      <summary>Lihat detail (${items.length} kontainer)</summary>
+      ${items.map(it=>{
+        const days = it.ata ? daysBetween(new Date(it.ata), new Date()) : null;
+        const dest = extractDestination(it.tujuan) || it.tujuan || '';
+        return `<div class="detail-row">
+          <b>${it.container}</b>${dest?' — '+dest:''}${it.kapal?' — '+it.kapal:''} — Sandar: ${it.ata ? fmtDate(it.ata)+' ('+days+' hari lalu)' : '-'}
+        </div>`;
+      }).join('')}
+    </details>
+  `;
+
+  const input = div.querySelector('.phone-input');
+  const link = div.querySelector('.btn.wa-sandar');
+  input.addEventListener('input', ()=>{
+    setPhone('dooring', expedisi, input.value);
+    link.href = waLink(input.value, text);
+  });
+
+  container.appendChild(div);
+}
+
+
 async function fetchDistributorPendingFromCache(kapalRows){
   const truckRows = await fetchBongkarSheet(CSV_URL_TRUCK_BONGKAR, COL_TRUCK_BONGKAR, 'truck');
   const today = new Date();
@@ -849,10 +918,12 @@ function switchTab(tab){
   document.getElementById('tabBtnExp').classList.toggle('active', tab==='exp');
   document.getElementById('tabBtnDist').classList.toggle('active', tab==='dist');
   document.getElementById('tabBtnSandar').classList.toggle('active', tab==='sandar');
+  document.getElementById('tabBtnDooring').classList.toggle('active', tab==='dooring');
   document.getElementById('panelOverview').classList.toggle('active', tab==='overview');
   document.getElementById('panelExp').classList.toggle('active', tab==='exp');
   document.getElementById('panelDist').classList.toggle('active', tab==='dist');
   document.getElementById('panelSandar').classList.toggle('active', tab==='sandar');
+  document.getElementById('panelDooring').classList.toggle('active', tab==='dooring');
 }
 
 let currentMode = 'harian'; // 'harian' | 'mingguan' | 'bulanan' — cuma ngatur bagian DETAIL di bawah
@@ -1445,6 +1516,15 @@ async function loadReport(){
   });
   const groupedSandarOverdue = groupByCaseInsensitive(sandarOverdueRaw, r => r.expedisi || 'TANPA EKSPEDISI');
 
+  // Kontainer yang sudah SANDAR (ATA terisi) tapi Dooring-nya masih kosong -> perlu konfirmasi dooring.
+  const dooringOverdueRaw = kapalSandarRows.filter(r=>{
+    if(!r.container) return false; // belum ada No. Container, skip
+    if(!r.ata) return false; // belum sandar, belum relevan buat ditanya dooring
+    if(r.dooring) return false; // sudah ada dooring, sudah beres
+    return true;
+  });
+  const groupedDooringOverdue = groupByCaseInsensitive(dooringOverdueRaw, r => r.expedisi || 'TANPA EKSPEDISI');
+
   const expedisiContainer = document.getElementById('expedisiList');
   const expedisiKeys = Object.keys(groupedExpedisi);
   if(expedisiKeys.length===0){
@@ -1468,6 +1548,21 @@ async function loadReport(){
     sandarBadge.textContent = sandarKeys.reduce((sum,k)=>sum+groupedSandarOverdue[k].items.length, 0);
     sandarKeys.sort((a,b)=>groupedSandarOverdue[a].label.localeCompare(groupedSandarOverdue[b].label)).forEach(key=>{
       renderSandarCard(sandarContainer, groupedSandarOverdue[key].label, groupedSandarOverdue[key].items);
+    });
+  }
+
+  // Tab Konfirmasi Dooring: independen dari tanggal terpilih
+  const dooringContainer = document.getElementById('dooringList');
+  const dooringBadge = document.getElementById('dooringBadge');
+  const dooringKeys = Object.keys(groupedDooringOverdue);
+  if(dooringKeys.length===0){
+    dooringBadge.style.display = 'none';
+    dooringContainer.innerHTML = '<div class="empty">✅ Semua kontainer sudah ada laporan dooring</div>';
+  } else {
+    dooringBadge.style.display = 'inline-block';
+    dooringBadge.textContent = dooringKeys.reduce((sum,k)=>sum+groupedDooringOverdue[k].items.length, 0);
+    dooringKeys.sort((a,b)=>groupedDooringOverdue[a].label.localeCompare(groupedDooringOverdue[b].label)).forEach(key=>{
+      renderDooringCard(dooringContainer, groupedDooringOverdue[key].label, groupedDooringOverdue[key].items);
     });
   }
 
