@@ -946,9 +946,8 @@ function switchMode(mode){
 
 function getMingguanRange(){
   const today = new Date(); today.setHours(0,0,0,0);
-  const day = today.getDay(); // 0=Minggu
-  const diffToMonday = (day===0?6:day-1);
-  const start = new Date(today); start.setDate(start.getDate()-diffToMonday);
+  const day = today.getDay(); // 0=Minggu, 1=Senin, ... 6=Sabtu
+  const start = new Date(today); start.setDate(start.getDate()-day); // mundur ke Minggu terdekat
   return {start, end: today};
 }
 
