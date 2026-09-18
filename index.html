@@ -676,6 +676,48 @@ function parseUSDate(str, referenceDate){
   return candidates[candidates.length-1];
 }
 
+// ==== Sheet baru: Riwayat Lelang (No Order, Distributor, Kota terpisah, No Kontener bisa >1 dipisah &) ====
+const CSV_URL_RIWAYAT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTrS85iOoV-T9RKkJ2fXp_9CdPPnrHRLl_reqIVfJ-2nS3NDSNOjqkY-P0cwOuINMyyzpR_xKT24br_/pub?gid=645000745&single=true&output=csv';
+// header row 1, data mulai row 2
+// 0 No Order,1 Ekspedisi,2 Tipe Mobil,3 Nama Distributor,4 Kota,5 Nama Kapal,6 No Kontener,7 ETD,8 ETA,9 ATD,10 ATA,11 Dooring,12 Keterangan
+const COL_RIWAYAT = { NO_ORDER:0, EKSPEDISI:1, TIPE_MOBIL:2, DISTRIBUTOR:3, KOTA:4, KAPAL:5, KONTENER:6, ETD:7, ETA:8, ATD:9, ATA:10, DOORING:11, KETERANGAN:12 };
+
+async function fetchRiwayatArmada(){
+  const rows = [];
+  try{
+    const res = await fetch(CSV_URL_RIWAYAT);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const csvText = await res.text();
+    const parsed = Papa.parse(csvText, {skipEmptyLines:false});
+    const dataRows = parsed.data.slice(1); // skip header row 1
+
+    dataRows.forEach(r=>{
+      const distributor = (r[COL_RIWAYAT.DISTRIBUTOR]||'').toString().trim();
+      const kota = (r[COL_RIWAYAT.KOTA]||'').toString().trim();
+      const kontenerRaw = (r[COL_RIWAYAT.KONTENER]||'').toString().trim();
+      if(!kontenerRaw && !distributor) return;
+      const tujuan = kota ? `${distributor} - ${kota}` : distributor;
+      const etd = parseIDDate(r[COL_RIWAYAT.ETD]);
+      const eta = parseIDDate(r[COL_RIWAYAT.ETA]);
+      const atd = parseIDDate(r[COL_RIWAYAT.ATD]);
+      const ata = parseIDDate(r[COL_RIWAYAT.ATA]);
+      const dooring = parseIDDate(r[COL_RIWAYAT.DOORING]);
+      // No Kontener bisa lebih dari 1, dipisah "&"
+      const containers = kontenerRaw ? kontenerRaw.split('&').map(c=>c.trim()).filter(Boolean) : [''];
+      containers.forEach(container=>{
+        rows.push({
+          tujuan, truckType: r[COL_RIWAYAT.TIPE_MOBIL],
+          expedisi: (r[COL_RIWAYAT.EKSPEDISI]||'').toString().trim() || 'TANPA EKSPEDISI',
+          kapal: r[COL_RIWAYAT.KAPAL], container, etd, atd, eta, ata, dooring
+        });
+      });
+    });
+  }catch(err){
+    console.warn('Gagal ambil data Riwayat Lelang:', err.message);
+  }
+  return rows;
+}
+
 async function fetchKapalSandar(){
   const rows = [];
   try{
@@ -706,7 +748,29 @@ async function fetchKapalSandar(){
   }catch(err){
     console.warn('Gagal ambil data Kapal Sandar:', err.message);
   }
-  return rows;
+
+  // Gabungkan dengan Riwayat Lelang, dedup by nomor kontainer (normalized) -> prioritaskan Riwayat Lelang
+  let riwayatRows = [];
+  try{
+    riwayatRows = await fetchRiwayatArmada();
+  }catch(err){
+    console.warn('Gagal ambil data Riwayat Lelang:', err.message);
+  }
+
+  const seen = new Set();
+  const merged = [];
+  riwayatRows.forEach(r=>{
+    const key = normalizeContainer(r.container);
+    if(key) seen.add(key);
+    merged.push(r);
+  });
+  rows.forEach(r=>{
+    const key = normalizeContainer(r.container);
+    if(key && seen.has(key)) return; // sudah ada di Riwayat Lelang, skip biar gak dobel
+    merged.push(r);
+  });
+
+  return merged;
 }
 
 function buildKonfirmasiSandarText(expedisi, items){
