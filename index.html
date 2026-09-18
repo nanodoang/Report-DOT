@@ -773,6 +773,10 @@ async function fetchKapalSandar(){
   return merged;
 }
 
+function lelangEkspedisiLink(expedisi){
+  return `https://nanodoang.github.io/UNIFAM-lelang-expedisi/index.html?ekspedisi=${encodeURIComponent(expedisi)}`;
+}
+
 function buildKonfirmasiSandarText(expedisi, items){
   let t = `📋 *KONFIRMASI STATUS SANDAR KONTAINER*\n*${expedisi}*\n\n`;
   t += `Kontainer berikut belum ada laporan SANDAR. Mohon konfirmasi sudah sandar atau belum:\n\n`;
@@ -794,7 +798,7 @@ function buildKonfirmasiSandarText(expedisi, items){
     t += `   ETA jadwal: ${etaDate ? fmtDate(etaDate)+(maxDays!==null?' ('+maxDays+' hari lewat)':'') : 'belum ada ETA'}\n\n`;
   });
 
-  t += `Mohon info tanggal sandar nya dan segera di update di link report, terima kasih 🙏`;
+  t += `Mohon segera diisi tanggal sandarnya di link berikut ya:\n${lelangEkspedisiLink(expedisi)}\n\nTerima kasih 🙏`;
   return t.trim();
 }
 
@@ -857,7 +861,7 @@ function buildKonfirmasiDooringText(expedisi, items){
     t += `   Sandar (ATA): ${ataDate ? fmtDate(ataDate)+(maxDays!==null?' ('+maxDays+' hari lalu)':'') : '-'}\n\n`;
   });
 
-  t += `Mohon info tanggal dooring nya dan segera di update di link report, terima kasih 🙏`;
+  t += `Mohon segera diisi tanggal dooring-nya di link berikut ya:\n${lelangEkspedisiLink(expedisi)}\n\nTerima kasih 🙏`;
   return t.trim();
 }
 
