@@ -1250,9 +1250,12 @@ function isOnOrBefore(d, ref){
 function parseIDDate(str){
   if(!str) return null;
   str = str.toString().trim();
-  const m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if(!m) return null;
-  return new Date(parseInt(m[3]), parseInt(m[2])-1, parseInt(m[1]));
+  // Format D/M/YYYY; toleran terhadap pemisah "/", "-", "." dan jam di belakang tanggal
+  const m = str.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})(?:\s.*)?$/);
+  if(m) return new Date(parseInt(m[3]), parseInt(m[2])-1, parseInt(m[1]));
+  const iso = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s].*)?$/);
+  if(iso) return new Date(parseInt(iso[1]), parseInt(iso[2])-1, parseInt(iso[3]));
+  return null;
 }
 
 function sameDate(a,b){
