@@ -968,17 +968,19 @@ function parseIDDateFlexible(str){
 const HEADER_ROW_INDEX = 0;
 const DATA_START_INDEX = 1;
 
-// index kolom absolut (A=0, B=1, C=2, D=3, E=4, F=5, G=6, H=7, I=8, J=9, K=10, L=11, M=12, N=13, O=14, P=15)
+// Sheet "Plan Delivery 2026" (index kolom absolut, A=0). Header terkonfirmasi:
+// A #REF! | B Distributor Name | C Customer requisition | D Delivery name | E Sales order | F Ship date
+// G Arrival Date | H Receipt Date | I Receipt ETA | J Sales quantity | K Container Num | L Truck No | M Expedition Id
 const COL = {
   DISTRIBUTOR_NAME: 1,
   DELIVERY_NAME: 3,
-  SHIP_DATE: 6,
-  ARRIVAL_DATE: 7,
-  RECEIPT_DATE: 8,
-  RECEIPT_ETA: 9,
-  CONTAINER: 11,
-  NOPOL: 12,
-  EXPEDISI: 13
+  SHIP_DATE: 5,
+  ARRIVAL_DATE: 6,
+  RECEIPT_DATE: 7,
+  RECEIPT_ETA: 8,
+  CONTAINER: 10,
+  NOPOL: 11,
+  EXPEDISI: 12
 };
 
 function switchTab(tab){
