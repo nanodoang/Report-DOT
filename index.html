@@ -679,8 +679,14 @@ function parseUSDate(str, referenceDate){
 // ==== Sheet baru: Riwayat Lelang (No Order, Distributor, Kota terpisah, No Kontener bisa >1 dipisah &) ====
 const CSV_URL_RIWAYAT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTrS85iOoV-T9RKkJ2fXp_9CdPPnrHRLl_reqIVfJ-2nS3NDSNOjqkY-P0cwOuINMyyzpR_xKT24br_/pub?gid=645000745&single=true&output=csv';
 // header row 1, data mulai row 2
-// 0 No Order,1 Ekspedisi,2 Tipe Mobil,3 Nama Distributor,4 Kota,5 Nama Kapal,6 No Kontener,7 ETD,8 ETA,9 ATD,10 ATA,11 Dooring,12 Keterangan
-const COL_RIWAYAT = { NO_ORDER:0, EKSPEDISI:1, TIPE_MOBIL:2, DISTRIBUTOR:3, KOTA:4, KAPAL:5, KONTENER:6, ETD:7, ETA:8, ATD:9, ATA:10, DOORING:11, KETERANGAN:12 };
+// Header terkonfirmasi (ada kolom Tgl Muat di depan):
+// 0 Tgl Muat,1 No Order,2 Ekspedisi,3 Tipe Mobil,4 Nama Distributor,5 Kota,6 Nama Kapal,7 No Kontener,8 ETD,9 ETA,10 ATD,11 ATA,12 Dooring,13 Keterangan
+const COL_RIWAYAT = { TGL_MUAT:0, NO_ORDER:1, EKSPEDISI:2, TIPE_MOBIL:3, DISTRIBUTOR:4, KOTA:5, KAPAL:6, KONTENER:7, ETD:8, ETA:9, ATD:10, ATA:11, DOORING:12, KETERANGAN:13 };
+
+// Skor kelengkapan data: makin jauh progres pengiriman, makin tinggi (Dooring > ATA > ATD > ETA > ETD)
+function completenessScore(r){
+  return (r.dooring?16:0) + (r.ata?8:0) + (r.atd?4:0) + (r.eta?2:0) + (r.etd?1:0);
+}
 
 async function fetchRiwayatArmada(){
   const rows = [];
@@ -708,7 +714,7 @@ async function fetchRiwayatArmada(){
         rows.push({
           tujuan, truckType: r[COL_RIWAYAT.TIPE_MOBIL],
           expedisi: (r[COL_RIWAYAT.EKSPEDISI]||'').toString().trim() || 'TANPA EKSPEDISI',
-          kapal: r[COL_RIWAYAT.KAPAL], container, etd, atd, eta, ata, dooring
+          kapal: r[COL_RIWAYAT.KAPAL], container, kota, etd, atd, eta, ata, dooring
         });
       });
     });
@@ -749,7 +755,10 @@ async function fetchKapalSandar(){
     console.warn('Gagal ambil data Kapal Sandar:', err.message);
   }
 
-  // Gabungkan dengan Riwayat Lelang, dedup by nomor kontainer (normalized) -> prioritaskan Riwayat Lelang
+  // Gabungkan Riwayat Lelang + Kapal Sandar. Kalau nomor kontainer sama (double, termasuk double
+  // di dalam 1 sheet karena database berubah), ambil 1 saja: yang datanya PALING LENGKAP
+  // (progres terjauh: Dooring > ATA > ATD > ETA > ETD). Kalau sama lengkap, menang Riwayat Lelang
+  // (urutan: Riwayat dulu, baru Kapal Sandar; baris baru hanya menggantikan kalau skornya lebih tinggi).
   let riwayatRows = [];
   try{
     riwayatRows = await fetchRiwayatArmada();
@@ -757,17 +766,24 @@ async function fetchKapalSandar(){
     console.warn('Gagal ambil data Riwayat Lelang:', err.message);
   }
 
-  const seen = new Set();
-  const merged = [];
-  riwayatRows.forEach(r=>{
-    const key = normalizeContainer(r.container);
-    if(key) seen.add(key);
-    merged.push(r);
-  });
-  rows.forEach(r=>{
-    const key = normalizeContainer(r.container);
-    if(key && seen.has(key)) return; // sudah ada di Riwayat Lelang, skip biar gak dobel
-    merged.push(r);
+  // Kunci pencocokan = No Kontainer + Kota tujuan. Kontainer yang sama tapi kota beda = pengiriman
+  // berbeda (bukan double). Kota: Riwayat punya kolom Kota sendiri; Kapal Sandar diambil dari
+  // bagian setelah " - " di kolom Tujuan. Huruf besar/kecil, spasi, dan tanda baca diabaikan.
+  const kotaKey = r => (r.kota || extractDestination(r.tujuan) || '').toString().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const best = new Map();   // key kontainer+kota -> baris terpilih
+  const merged = [];        // urutan tampil; baris tanpa nomor kontainer tetap ikut apa adanya
+  riwayatRows.concat(rows).forEach(r=>{
+    const cont = normalizeContainer(r.container);
+    if(!cont){ merged.push(r); return; }
+    const key = cont + '|' + kotaKey(r);
+    const prev = best.get(key);
+    if(!prev){
+      best.set(key, r);
+      merged.push(r);
+    }else if(completenessScore(r) > completenessScore(prev)){
+      merged[merged.indexOf(prev)] = r;
+      best.set(key, r);
+    }
   });
 
   return merged;
