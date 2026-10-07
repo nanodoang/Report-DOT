@@ -986,7 +986,8 @@ const DATA_START_INDEX = 1;
 
 // Sheet "Plan Delivery 2026" (index kolom absolut, A=0). Header terkonfirmasi:
 // A #REF! | B Distributor Name | C Customer requisition | D Delivery name | E Sales order | F Ship date
-// G Arrival Date | H Receipt Date | I Receipt ETA | J Sales quantity | K Container Num | L Truck No | M Expedition Id
+// G Arrival Date | H Receipt Date | I Receipt ETA | J Sales quantity | K no sjpa | L Container Num
+// M Truck No | N Expedition Id | O m3 | P Note
 const COL = {
   DISTRIBUTOR_NAME: 1,
   DELIVERY_NAME: 3,
@@ -994,9 +995,10 @@ const COL = {
   ARRIVAL_DATE: 6,
   RECEIPT_DATE: 7,
   RECEIPT_ETA: 8,
-  CONTAINER: 10,
-  NOPOL: 11,
-  EXPEDISI: 12
+  NO_SJPA: 10,
+  CONTAINER: 11,
+  NOPOL: 12,
+  EXPEDISI: 13
 };
 
 function switchTab(tab){
