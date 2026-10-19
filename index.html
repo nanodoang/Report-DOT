@@ -1358,11 +1358,11 @@ function buildKonfirmasiText(name, rows, dateStr){
   let t = `📋 *KONFIRMASI STATUS PENGIRIMAN*\n*${name}*\nEstimasi sampai: ${dateStr}\n\n`;
 
   if(kontainerRows.length){
-    t += `🚢 *Mohon info TANGGAL SANDAR kapal untuk kontainer berikut* (untuk keperluan monitoring DOT):\n\n`;
+    t += `🚢 *Mohon info TANGGAL BONGKAR (DOORING) untuk kontainer berikut* (untuk keperluan monitoring DOT):\n\n`;
     kontainerRows.forEach((r,i)=>{
-      t += `${i+1}. No. Kontainer: *${r.container||'-'}* — ${(r.distributorName || extractDistributor(r.deliveryName))}\n   ETA jadwal: ${fmtDate(r.receiptETA)}\n`;
+      t += `${i+1}. No. Kontainer: *${r.container||'-'}* — ${(r.distributorName || extractDistributor(r.deliveryName))}\n   ETA leadtime (dooring): ${fmtDate(r.receiptETA)}\n`;
     });
-    t += `\nMohon dibalas dengan format:\n_No. Kontainer - Tanggal Sandar_\n`;
+    t += `\nMohon dibalas dengan format:\n_No. Kontainer - Tanggal Bongkar (Dooring)_\n`;
   }
 
   if(truckRows.length){
