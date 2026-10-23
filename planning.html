@@ -1,0 +1,2359 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planning Armada PT. UNIFAM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#EFF2F7;--card:#FFF;--card2:#EFF2F7;
+  --border:#DDE2EC;--border2:#C3CAD9;
+  --text:#12172B;--text2:#2A3180;--text3:#5A6480;
+  --navy:#2A3180;--navy-d:#1C2159;--navy-dd:#161A45;--teal:#1596A3;--teal-d:#0E7A85;
+  --green:#12876B;--green-bg:#E8F6EF;--red:#C8443A;--amber:#D9820F;--amber-bg:#FFF8EC;
+  --r:0px;
+  --disp:'Barlow Condensed',Arial,sans-serif;
+  --sans:'Barlow',Arial,sans-serif;
+  --mono:'IBM Plex Mono','Courier New',monospace;
+}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:96px;font-size:14.5px}
+.hdr{background:var(--navy);padding:15px 18px;display:flex;align-items:center;gap:12px}
+.hdr .ico{width:38px;height:38px;background:var(--teal);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.hdr h1{font-family:var(--disp);font-size:19px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.03em;line-height:1.1}
+.hdr p{font-family:var(--mono);font-size:10.5px;color:rgba(255,255,255,.55);margin-top:2px;letter-spacing:.02em}
+
+.wrap{padding:16px 16px}
+.sec-lbl{font-family:var(--disp);font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.14em;margin:4px 0 10px}
+
+/* ORDER ROWS */
+.orow{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:12px;position:relative;box-shadow:0 1px 2px rgba(18,23,43,.05)}
+.orow-hd{font-family:var(--disp);font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:flex;justify-content:space-between;align-items:center;margin-bottom:11px}
+.btn-del{width:26px;height:26px;background:#FDEDEB;border:1px solid rgba(200,68,58,.4);border-radius:var(--r);color:var(--red);cursor:pointer;font-size:15px;line-height:1}
+.fld{display:flex;flex-direction:column;gap:5px;margin-bottom:9px;position:relative}
+.fld label{font-family:var(--disp);font-size:10.5px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em}
+.fld label .req{color:var(--amber)}
+.fld input,.fld select{padding:10px 11px;border:1px solid var(--border2);border-radius:var(--r);font-size:14px;font-family:var(--mono);color:var(--text);background:#fff;width:100%}
+.fld input:focus,.fld select:focus{outline:none;border-color:var(--navy);box-shadow:inset 0 0 0 1px var(--navy)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+
+/* autocomplete */
+.dist-sugg{position:absolute;top:100%;left:0;right:0;border:1px solid var(--border2);border-radius:var(--r);background:#fff;box-shadow:0 6px 20px rgba(18,23,43,.12);max-height:200px;overflow-y:auto;z-index:60;margin-top:2px}
+.dist-item{padding:9px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border)}
+.dist-item:last-child{border-bottom:none}
+.dist-item:active,.dist-item:hover{background:#F4F6FA}
+.dist-item b{color:var(--navy)}
+
+/* RANKING */
+.rank-box{margin-top:9px;border-top:1px dashed var(--border2);padding-top:11px}
+.rank-box .rank-lbl{font-family:var(--disp);font-size:11px;font-weight:600;color:var(--teal-d);text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px}
+.rank-item{display:flex;align-items:center;gap:11px;padding:10px 11px;border:1px solid var(--border2);border-radius:var(--r);margin-bottom:7px;cursor:pointer;background:#fff;transition:.12s}
+.rank-item:active{transform:scale(.99)}
+.rank-item.on{border-color:var(--teal);background:rgba(21,150,163,.07);box-shadow:0 0 0 1px var(--teal)}
+.rank-no{width:22px;height:22px;background:var(--card2);color:var(--text2);font-family:var(--mono);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rank-item.on .rank-no{background:var(--teal);color:#fff}
+.rank-item:first-child .rank-no{background:rgba(217,130,15,.15);color:var(--amber)}
+.rank-item.on:first-child .rank-no{background:var(--teal);color:#fff}
+.rank-main{flex:1;min-width:0}
+.rank-eksp{font-size:13px;font-weight:600;color:var(--navy)}
+.rank-vtype{font-family:var(--mono);font-size:10px;color:var(--text3)}
+.rank-price{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--green);white-space:nowrap}
+.rank-empty{font-size:12px;color:var(--text3);padding:6px 2px}
+
+.btn-add{width:100%;padding:12px;background:transparent;border:1px dashed var(--border2);border-radius:var(--r);font-family:var(--disp);font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text2);cursor:pointer;margin-bottom:16px}
+
+/* GROUP / FILTER */
+.grp-bar{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:13px}
+.grp-pill{padding:8px 15px;border-radius:var(--r);border:1px solid var(--border2);background:#fff;font-family:var(--disp);font-size:12.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;color:var(--text);display:flex;align-items:center;gap:7px}
+.grp-pill.on{border-color:var(--navy);background:var(--navy);color:#fff}
+.grp-pill .cnt{font-family:var(--mono);font-size:10px;background:var(--card2);color:var(--text2);padding:1px 7px;font-weight:600}
+.grp-pill.on .cnt{background:rgba(255,255,255,.22);color:#fff}
+
+/* WA PREVIEW */
+.wa-card{background:var(--green-bg);border:1px solid rgba(18,135,107,.35);border-radius:var(--r);padding:15px;margin-bottom:14px;display:none}
+.wa-card h3{font-family:var(--disp);font-size:13px;color:var(--green);font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:9px;display:flex;align-items:center;gap:6px}
+.wa-bubble{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:13px;font-size:12.5px;line-height:1.6;white-space:pre-wrap;color:var(--text);font-family:var(--mono);max-height:280px;overflow-y:auto}
+.wa-actions{display:flex;gap:8px;margin-top:11px}
+.btn-wa{flex:1;padding:12px;background:var(--teal-d);color:#fff;border:none;border-radius:var(--r);font-family:var(--disp);font-size:14px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;cursor:pointer}
+.btn-copy{padding:12px 16px;background:#fff;border:1px solid var(--border2);border-radius:var(--r);font-family:var(--disp);font-size:12.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text2);cursor:pointer}
+
+.footer{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);padding:13px 16px;display:flex;gap:10px;box-shadow:0 -2px 12px rgba(18,23,43,.08)}
+.btn-main{flex:1;padding:14px;background:var(--navy);color:#fff;border:none;border-radius:var(--r);font-family:var(--disp);font-size:15px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+.btn-main:hover{background:var(--navy-d)}
+.btn-main:disabled{opacity:.5}
+
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--navy);color:#fff;padding:11px 20px;border-radius:var(--r);font-family:var(--disp);font-size:13px;font-weight:600;letter-spacing:.04em;z-index:200;transition:.3s;opacity:0;max-width:90%;text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.err{background:var(--red)}
+.toast.ok{background:var(--green)}
+
+.hint{font-family:var(--mono);font-size:11px;color:var(--text3);text-align:center;margin:4px 0 14px}
+.loading-rate{font-family:var(--mono);font-size:11px;color:var(--teal-d);padding:4px 2px}
+
+/* IMPORT */
+.import-box{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:13px;margin-bottom:16px;box-shadow:0 1px 2px rgba(18,23,43,.05)}
+.import-tabs{display:flex;gap:6px;margin-bottom:11px}
+.imp-tab{flex:1;padding:9px;border:1px solid var(--border2);background:#fff;border-radius:var(--r);font-family:var(--disp);font-size:12.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text2);cursor:pointer}
+.imp-tab.on{border-color:var(--navy);background:var(--navy);color:#fff}
+.upload-drop{display:flex;flex-direction:column;align-items:center;gap:8px;padding:24px;border:1.5px dashed var(--border2);border-radius:var(--r);cursor:pointer;text-align:center;background:var(--bg)}
+.upload-drop:active{background:#E4E9F1}
+.up-ico{font-size:26px}
+.up-txt{font-size:13px;font-weight:600;color:var(--text2);line-height:1.5}
+.up-txt small{font-weight:400;color:var(--text3);font-size:11px;font-family:var(--mono)}
+#paste-area{width:100%;min-height:110px;padding:12px;border:1px solid var(--border2);border-radius:var(--r);font-size:12.5px;font-family:var(--mono);color:var(--text);background:#fff;resize:vertical}
+#paste-area:focus{outline:none;border-color:var(--navy)}
+.btn-parse{width:100%;margin-top:9px;padding:11px;background:var(--navy);color:#fff;border:none;border-radius:var(--r);font-family:var(--disp);font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+.import-hint{font-family:var(--mono);font-size:10.5px;color:var(--text3);margin-top:9px;text-align:center}
+
+/* TABEL RATE */
+.table-scroll{overflow:auto;max-height:70vh;border:1px solid var(--border);border-radius:var(--r);background:#fff;-webkit-overflow-scrolling:touch}
+/* ==== MODE KARTU (HP) ==== */
+#card-wrap{display:none;grid-template-columns:1fr;gap:12px}
+.ocard{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:13px 14px;box-shadow:0 1px 2px rgba(18,23,43,.05)}
+.ocard.sel{border-color:var(--teal);box-shadow:0 0 0 2px rgba(21,150,163,.18)}
+.ocard.drop{border-color:var(--navy);background:#F7F8FC}
+.oc-head{display:flex;align-items:flex-start;gap:9px;margin-bottom:11px}
+.oc-chk{width:18px;height:18px;flex-shrink:0;margin-top:1px;accent-color:var(--navy)}
+.oc-tuj{font-size:13.5px;font-weight:600;color:var(--text)}
+.oc-meta{font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:2px}
+.oc-badge{font-family:var(--disp);font-size:9px;padding:2px 8px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;flex-shrink:0}
+.oc-row2{display:flex;gap:8px;margin-bottom:12px}
+.oc-row2>div{flex:1}
+.oc-lbl{font-family:var(--disp);font-size:9px;color:var(--text3);margin-bottom:3px;text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+.oc-row2 select{width:100%;padding:8px 9px;border:1px solid var(--border2);border-radius:var(--r);font-size:11.5px;font-family:var(--mono);background:#fff}
+.oc-rate-lbl{font-family:var(--disp);font-size:9px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+.oc-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.oc-rk{background:#fff;border:1px solid var(--border2);border-radius:var(--r);padding:7px 9px;cursor:pointer;text-align:left}
+.oc-rk:active{background:#F4F6FA}
+.oc-rk.r1{background:var(--green-bg);border-color:rgba(18,135,107,.35)}
+.oc-rk.on{background:var(--navy);border-color:var(--navy)}
+.oc-rk.on *{color:#fff !important}
+.oc-rk-top{display:flex;align-items:center;gap:5px;margin-bottom:3px}
+.oc-rk-num{font-family:var(--mono);font-size:8px;padding:1px 6px;font-weight:600;background:var(--card2);color:var(--text3)}
+.oc-rk.r1 .oc-rk-num{background:var(--green);color:#fff}
+.oc-rk-eksp{font-size:11.5px;font-weight:600}
+.oc-rk-rate{font-family:var(--mono);font-size:11px;font-weight:600}
+.oc-rk.r1 .oc-rk-rate{color:var(--green)}
+.oc-more{text-align:center;padding:7px 0 0;font-family:var(--disp);font-size:10.5px;color:var(--navy);font-weight:600;letter-spacing:.05em;text-transform:uppercase;cursor:pointer}
+.oc-na{font-size:11px;color:var(--text3);text-align:center;padding:8px}
+.oc-drop-panel{margin-top:11px;padding:10px;background:#F0F5FB;border:1px solid var(--border);border-radius:var(--r);font-size:11px}
+/* HP = kartu, komputer = tabel */
+@media(max-width:900px){
+  #tbl-wrap{display:none}
+  #card-wrap{display:grid}
+}
+.rate-tbl{border-collapse:collapse;font-size:12px;min-width:100%;white-space:nowrap}
+.rate-tbl th,.rate-tbl td{padding:9px 11px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);text-align:left;vertical-align:middle}
+.rate-tbl thead th{background:var(--navy);color:#fff;font-family:var(--disp);font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;position:sticky;top:0;z-index:5}
+.rate-tbl thead .grp1{background:var(--amber)}
+.rate-tbl thead .grp2{background:var(--teal-d)}
+.rate-tbl tbody tr:nth-child(even){background:#FAFBFD}
+.cell-dest{font-weight:600;color:var(--navy);max-width:180px;white-space:normal}
+.cell-exp{font-weight:600;color:var(--teal-d)}
+.cell-exp.empty{color:var(--text3);font-weight:400;font-style:italic}
+.cell-rate{font-family:var(--mono);font-weight:600;color:var(--green)}
+.cell-rate.empty{color:var(--text3);font-weight:400;font-family:var(--sans)}
+.rank-eksp{font-weight:600;color:var(--navy)}
+.rank-rate{font-family:var(--mono);font-weight:600;color:var(--green)}
+.btn-klik{padding:5px 12px;background:var(--teal-d);color:#fff;border:none;border-radius:var(--r);font-family:var(--disp);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;cursor:pointer}
+.btn-klik.on{background:var(--navy)}
+.btn-klik:disabled{opacity:.3;cursor:default}
+.tbl-rownum{text-align:center;color:var(--text3);font-family:var(--mono);font-weight:600}
+.tbl-na{color:var(--text3);font-style:italic}
+.st-badge{display:inline-block;padding:3px 9px;font-family:var(--disp);font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.st-belum{background:rgba(217,130,15,.12);color:var(--amber);border:1px solid rgba(217,130,15,.35)}
+.st-tidak{background:rgba(200,68,58,.1);color:var(--red);border:1px solid rgba(200,68,58,.35)}
+.st-baru{background:rgba(21,150,163,.1);color:var(--teal-d);border:1px solid rgba(21,150,163,.35)}
+.st-drop{background:var(--navy);color:#fff}
+.row-drop{background:#F0F5FB !important}
+.row-belum{background:#FFF8EC !important}
+.row-tidak{background:#FDEDEB !important;opacity:.75}
+.jam-sel{padding:6px 7px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;font-family:var(--mono);background:#fff}
+.truck-sel{padding:6px 7px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;font-family:var(--mono);background:#fff;font-weight:600}
+.btn-hapus{width:30px;height:30px;background:#FDEDEB;border:1px solid rgba(200,68,58,.4);border-radius:var(--r);cursor:pointer;font-size:14px;line-height:1;padding:0}
+.btn-hapus:active{background:#FCD9D4}
+
+/* ==================== UI/UX v2 — tampilan modern (override, JS tak berubah) ==================== */
+:root{
+  --bg:#F3F5FA;--border:#E3E8F1;--border2:#CFD6E4;--card2:#F1F4FA;
+  --r:12px;
+  --disp:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
+  --sans:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
+  --shadow-sm:0 1px 2px rgba(18,23,43,.05),0 2px 8px rgba(18,23,43,.05);
+  --shadow-md:0 4px 18px rgba(18,23,43,.10);
+  --ring:0 0 0 3px rgba(42,49,128,.16);
+}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font-family:inherit}
+button{transition:background .15s,transform .1s,box-shadow .15s,border-color .15s}
+button:active:not(:disabled){transform:scale(.97)}
+
+/* header + nav */
+#top-sticky{box-shadow:var(--shadow-md)}
+.hdr{background:linear-gradient(135deg,#2F3790 0%,#1C2159 100%);padding:14px 20px;gap:14px}
+.hdr .ico{width:44px;height:44px;border-radius:12px;background:#fff;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.hdr .ico img{padding:4px !important}
+.hdr h1{font-size:19px;font-weight:800;text-transform:none;letter-spacing:-.01em}
+.hdr p{font-family:var(--sans);font-size:11.5px;color:rgba(255,255,255,.7)}
+.hdr div[style*="letter-spacing:.16em"]{font-weight:600;font-size:10.5px !important}
+#harga-status{font-family:var(--mono) !important;font-size:10.5px !important;color:#9BE7D2 !important}
+#top-sticky nav{background:#171C4D !important;flex-wrap:nowrap !important;overflow-x:auto;padding:7px 12px;gap:6px !important;box-shadow:none !important;scrollbar-width:none}
+#top-sticky nav::-webkit-scrollbar{display:none}
+#top-sticky nav a{border-right:none !important;border-radius:999px;padding:8px 15px !important;font-family:var(--sans) !important;font-size:12.5px !important;font-weight:600 !important;letter-spacing:0 !important;text-transform:none !important;color:rgba(255,255,255,.78) !important;transition:background .15s,color .15s}
+#top-sticky nav a:hover{background:rgba(255,255,255,.12);color:#fff !important}
+#top-sticky nav a:last-child{background:rgba(21,150,163,.28);color:#fff !important}
+
+.wrap{max-width:1500px;margin:0 auto;padding:18px 18px}
+.sec-lbl{font-family:var(--sans);font-size:11.5px;font-weight:700;letter-spacing:.08em;color:var(--text3)}
+
+/* kartu / panel */
+.orow,.import-box,.ocard,.wa-card{border-radius:16px;border:1px solid var(--border);box-shadow:var(--shadow-sm)}
+.wa-card{border-color:rgba(18,135,107,.3)}
+.ocard.sel{box-shadow:0 0 0 2px rgba(21,150,163,.25),var(--shadow-sm)}
+.wa-bubble{border-radius:12px}
+.btn-del,.btn-hapus{border-radius:10px}
+
+/* form */
+.fld label,.oc-lbl,.oc-rate-lbl{font-family:var(--sans);font-weight:700;letter-spacing:.05em}
+.fld input,.fld select,.oc-row2 select,.jam-sel,.truck-sel,#paste-area{border-radius:10px;border-color:var(--border2);background:#fff}
+.fld input,.fld select{padding:11px 12px;min-height:44px}
+.fld input:focus,.fld select:focus,#paste-area:focus,.jam-sel:focus,.truck-sel:focus{outline:none;border-color:var(--navy);box-shadow:var(--ring)}
+.jam-sel,.truck-sel{min-height:36px}
+.oc-row2 select{min-height:40px}
+.dist-sugg{border-radius:12px;box-shadow:var(--shadow-md);overflow:hidden}
+
+/* ranking */
+.rank-item{border-radius:12px;padding:11px 13px}
+.rank-item:hover{border-color:var(--teal);background:#F7FCFC}
+.rank-no{border-radius:8px}
+.oc-rk{border-radius:10px;min-height:44px}
+.oc-rk-num{border-radius:6px}
+.btn-klik{border-radius:8px;padding:7px 14px;font-family:var(--sans);font-weight:700;text-transform:none;letter-spacing:0}
+
+/* filter pill / tab */
+.grp-pill{border-radius:999px;padding:9px 16px;font-family:var(--sans);font-weight:600;text-transform:none;letter-spacing:0;font-size:13px}
+.grp-pill .cnt{border-radius:999px}
+.imp-tab,.btn-parse,.btn-add,.btn-copy{border-radius:10px;font-family:var(--sans);font-weight:700;text-transform:none;letter-spacing:0;font-size:13px}
+.btn-add{border-radius:12px}
+.upload-drop{border-radius:14px}
+.btn-wa{border-radius:12px;font-family:var(--sans);font-weight:700;text-transform:none;letter-spacing:0;font-size:14px}
+
+/* footer aksi */
+.footer{border-radius:20px 20px 0 0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));box-shadow:0 -6px 24px rgba(18,23,43,.12);backdrop-filter:saturate(1.4) blur(10px);background:rgba(255,255,255,.92)}
+.btn-main{border-radius:14px;min-height:50px;font-family:var(--sans);font-weight:800;font-size:15px;text-transform:none;letter-spacing:0;background:linear-gradient(135deg,#2F3790,#1C2159);box-shadow:0 4px 14px rgba(42,49,128,.35)}
+.btn-main:hover{background:linear-gradient(135deg,#3640A6,#222873)}
+.toast{border-radius:999px;font-family:var(--sans);font-weight:600;letter-spacing:0;box-shadow:var(--shadow-md);padding:12px 22px}
+
+/* tabel (desktop) */
+.table-scroll{border-radius:16px;box-shadow:var(--shadow-sm);border-color:var(--border)}
+.rate-tbl{font-size:12.5px}
+.rate-tbl th,.rate-tbl td{border-right:none;padding:10px 12px}
+.rate-tbl thead th{background:#252C78;font-family:var(--sans);font-weight:700;text-transform:none;letter-spacing:.01em;font-size:11.5px}
+.rate-tbl thead th:first-child{border-top-left-radius:0}
+.rate-tbl tbody tr:nth-child(even){background:#F8FAFD}
+.rate-tbl tbody tr:hover{background:#EEF3FB}
+.st-badge{border-radius:999px;font-family:var(--sans);font-weight:700;text-transform:none;letter-spacing:0;padding:3px 10px;font-size:11px}
+.oc-badge{border-radius:999px;font-family:var(--sans);font-weight:700;text-transform:none;letter-spacing:0;padding:3px 10px;font-size:10.5px}
+.cell-rate,.rank-rate,.rank-price,.oc-rk-rate{font-variant-numeric:tabular-nums}
+
+/* modal pengaturan */
+#pengaturan-overlay{backdrop-filter:blur(3px)}
+#pengaturan-overlay > div{border-radius:20px !important;overflow:hidden;box-shadow:0 20px 60px rgba(18,23,43,.4)}
+#pengaturan-overlay > div > div:first-child{background:linear-gradient(135deg,#2F3790,#1C2159) !important}
+#pengaturan-overlay .sec-lbl{margin-top:2px}
+#pengaturan-overlay label[id^="mode-"]{border-radius:14px !important;transition:border-color .15s,box-shadow .15s}
+#pengaturan-overlay button{border-radius:10px !important;font-family:var(--sans) !important;text-transform:none !important;letter-spacing:0 !important}
+#pengaturan-overlay input,#pengaturan-overlay select{border-radius:10px !important}
+#pengaturan-overlay input:focus,#pengaturan-overlay select:focus{outline:none;box-shadow:var(--ring)}
+#pengaturan-overlay [id^="tabel-"]{border-radius:12px !important}
+
+/* scrollbar halus */
+*{scrollbar-width:thin;scrollbar-color:#C3CAD9 transparent}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:#C3CAD9;border-radius:8px}
+
+@media(max-width:600px){
+  .wrap{padding:14px 12px}
+  .hdr{padding:12px 14px}
+  .hdr h1{font-size:17px}
+}
+
+/* tombol Portal Utama: jangan menimpa bar aksi bawah — pindah ke atas bar */
+a[href*="Logistic-Transportation"]{bottom:auto !important;top:auto !important;left:14px !important;bottom:84px !important;border-radius:999px !important;padding:8px 14px !important;font-family:var(--sans) !important;font-size:12px !important;font-weight:700 !important;letter-spacing:0 !important;text-transform:none !important;opacity:.92;box-shadow:var(--shadow-md) !important}
+body{padding-bottom:150px}
+</style>
+</head>
+<body>
+
+<div id="top-sticky" style="position:sticky;top:0;z-index:50">
+<div class="hdr">
+  <div class="ico"><img src="https://nanodoang.github.io/pesanan-armada-PT.UNIFAM/logo.jpg" alt="Unifam" style="width:100%;height:100%;object-fit:contain;background:#fff;padding:3px"></div>
+  <div style="min-width:0">
+    <div style="font-family:var(--disp);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.65)">PT. UNIFAM</div>
+    <h1>Planning Armada</h1>
+    <p>Bandingkan rate &amp; kirim per ekspedisi <span style="opacity:.7">· v113</span></p>
+    <p id="harga-status" style="font-family:var(--mono);font-size:10px;color:#8FDCC7;margin-top:2px"></p>
+    <p id="last-sync" style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.4);margin-top:0"></p>
+  </div>
+</div>
+<nav style="background:var(--navy-d);display:flex;flex-wrap:wrap;gap:0;box-shadow:0 2px 8px rgba(18,23,43,.2)">
+  <a href="dashboard.html" style="color:rgba(255,255,255,.75);text-decoration:none;font-family:var(--disp);font-size:11.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:9px 13px;border-right:1px solid rgba(255,255,255,.1);white-space:nowrap">Dashboard</a>
+  <a href="jadwal-kapal.html" style="color:rgba(255,255,255,.75);text-decoration:none;font-family:var(--disp);font-size:11.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:9px 13px;border-right:1px solid rgba(255,255,255,.1);white-space:nowrap">Jadwal Kapal</a>
+  <a href="rate.html" style="color:rgba(255,255,255,.75);text-decoration:none;font-family:var(--disp);font-size:11.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:9px 13px;border-right:1px solid rgba(255,255,255,.1);white-space:nowrap">Rate</a>
+  <a href="cek-order.html" style="color:rgba(255,255,255,.75);text-decoration:none;font-family:var(--disp);font-size:11.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:9px 13px;border-right:1px solid rgba(255,255,255,.1);white-space:nowrap">Cek Status</a>
+  <a href="antrian-muat.html" style="color:rgba(255,255,255,.75);text-decoration:none;font-family:var(--disp);font-size:11.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:9px 13px;border-right:1px solid rgba(255,255,255,.1);white-space:nowrap">Antrian Muat</a>
+  <a href="isi-kapal.html" style="color:rgba(255,255,255,.75);text-decoration:none;font-family:var(--disp);font-size:11.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:9px 13px;border-right:1px solid rgba(255,255,255,.1);white-space:nowrap">Isi Kapal</a>
+  <a href="rank-stat.html" style="color:rgba(255,255,255,.75);text-decoration:none;font-family:var(--disp);font-size:11.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:9px 13px;border-right:1px solid rgba(255,255,255,.1);white-space:nowrap">Porsi Rank</a>
+  <a href="history.html" style="color:rgba(255,255,255,.75);text-decoration:none;font-family:var(--disp);font-size:11.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:9px 13px;border-right:1px solid rgba(255,255,255,.1);white-space:nowrap">History</a>
+  <a href="report-expedisi.html" style="color:rgba(255,255,255,.75);text-decoration:none;font-family:var(--disp);font-size:11.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:9px 13px;border-right:1px solid rgba(255,255,255,.1);white-space:nowrap">Report Ekspedisi</a>
+  <a href="#" onclick="bukaPengaturan();return false" style="color:rgba(255,255,255,.75);text-decoration:none;font-family:var(--disp);font-size:11.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:9px 13px;white-space:nowrap">⚙ Pengaturan</a>
+</nav>
+</div>
+
+<div class="wrap">
+
+  <!-- TAHAP 1: INPUT + RANKING (TABEL) -->
+  <div id="stage-input">
+
+    <!-- UPLOAD / PASTE -->
+    <div class="import-box">
+      <div class="import-tabs">
+        <button class="imp-tab on" id="tab-upload" onclick="switchImp('upload')">📄 Upload File</button>
+        <button class="imp-tab" id="tab-paste" onclick="switchImp('paste')">📋 Paste</button>
+      </div>
+      <div id="imp-upload" class="imp-pane">
+        <label class="upload-drop" for="file-input">
+          <span class="up-ico">⬆️</span>
+          <span class="up-txt">Ketuk untuk pilih file<br><small>Excel (.xlsx) atau CSV — kolom: No, Tanggal, Destination</small></span>
+        </label>
+        <input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFile(this)">
+      </div>
+      <div id="imp-paste" class="imp-pane" style="display:none">
+        <textarea id="paste-area" placeholder="Tempel dari Excel (kolom No, Tanggal, Destination dipisah tab/koma). Contoh:&#10;1&#9;02-Jan-26&#9;PT. Borwita Citra Prima - MANADO&#10;2&#9;02-Jan-26&#9;CV. Mitra - TORAJA"></textarea>
+        <button class="btn-parse" onclick="parsePaste()">Proses Teks</button>
+      </div>
+      <p class="import-hint">Upload Excel/CSV atau paste dari Excel. Kolom: <b>No, Tanggal, Destination, Kubikasi</b> (truck pilih manual di tabel).</p>
+      <div id="rate-fallback" style="display:none;margin-top:8px;padding:8px;background:#FEF3C7;border-radius:8px">
+        <p style="font-size:11px;color:#92400E;margin:0 0 6px">Rate gagal dimuat otomatis. Tempel link CSV rate, lalu ketuk Muat:</p>
+        <input type="text" id="rate-link" placeholder="https://docs.google.com/.../output=csv" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:12px;margin-bottom:6px">
+        <button class="btn-parse" onclick="muatRateManual()" style="margin:0">Muat Rate</button>
+      </div>
+    </div>
+
+    <div class="sec-lbl">Tabel Perbandingan Rate</div>
+    <p class="hint" style="text-align:left;margin-bottom:8px">Centang tujuan lalu <b>Gabung Multi-drop</b> untuk 1 mobil banyak tujuan. Ketuk <b>klik</b> di rate untuk pilih ekspedisi.</p>
+
+    <!-- FILTER TANGGAL -->
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#fff;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;flex-wrap:wrap">
+      <span style="font-size:12px;font-weight:700;color:var(--navy)">📅 Filter Tanggal</span>
+      <select id="filter-tgl" onchange="setFilterTgl(this.value)" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;min-width:140px">
+        <option value="">— semua tanggal —</option>
+      </select>
+      <span id="filter-info" style="font-size:11px;color:var(--text3)"></span>
+      <button onclick="setFilterTgl('')" style="background:#EEF2F7;border:1px solid var(--border);color:var(--text2);padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">✕ Reset</button>
+    </div>
+
+    <div id="drop-bar" style="display:none;align-items:center;gap:10px;padding:8px 12px;background:#EEF6FF;border:1px solid #BBD8F5;border-radius:8px;margin-bottom:8px;flex-wrap:wrap">
+      <span style="font-size:13px;color:#0C447C"><b id="drop-count">0</b> tercentang</span>
+      <button id="btn-gabung" onclick="gabungMultidrop()" style="background:#0C447C;color:#fff;border:none;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">🚚 Gabung Multi-drop</button>
+      <button onclick="hapusTercentang()" style="background:#DC2626;color:#fff;border:none;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">🗑️ Hapus Tercentang</button>
+    </div>
+    <div class="table-scroll" id="tbl-wrap">
+      <table class="rate-tbl" id="rate-tbl"></table>
+    </div>
+    <div id="card-wrap"></div>
+  </div>
+
+  <!-- TAHAP 2: GROUP PER EKSPEDISI -->
+  <div id="stage-group" style="display:none">
+    <div class="sec-lbl">Pilih Ekspedisi untuk Dikirim</div>
+    <div class="grp-bar" id="grp-bar"></div>
+
+    <div class="wa-card" id="wa-card">
+      <h3>📲 Pesan WhatsApp — <span id="wa-eksp">—</span></h3>
+      <div class="wa-bubble" id="wa-bubble"></div>
+      <div class="wa-actions">
+        <button class="btn-wa" onclick="kirimBatch()">Simpan &amp; Kirim WA</button>
+        <button class="btn-copy" onclick="copyPesan()">Salin</button>
+      </div>
+    </div>
+
+    <div class="wa-card" id="approve-box" style="display:none;background:#FEF6E7;border-color:#F4D58A">
+      <h3 style="color:#92400E">🙏 Pesan Approval — Management</h3>
+      <p style="font-size:11px;color:#92400E;margin-bottom:8px">Order ini memakai bukan rate termurah. Kirim ke grup approval (pilih kontak/grup saat WA terbuka).</p>
+      <div class="wa-bubble" id="approve-bubble"></div>
+      <div class="wa-actions">
+        <button class="btn-wa" style="background:#B45309" onclick="kirimApprove()">Kirim WA Approve</button>
+        <button class="btn-copy" onclick="copyApprove()">Salin</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  <button class="btn-main" id="btn-next" onclick="goGroup()">Lihat &amp; Pilih Ekspedisi</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ KONFIG ============
+const GAS_URL     = 'https://script.google.com/macros/s/AKfycbyMkAvd7tQGkFkXpo3sjbuNa2389lVRAP4YxuUnffFn0TtUjsKkQLli-fB0QC_MWOVJqQ/exec';
+const KONFIRM_URL = 'https://nanodoang.github.io/pesanan-armada-PT.UNIFAM/konfirmasi.html';
+let HARGA_CSV     = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQWWl6xUcwoS3ym-dPPunI4XIWrZoi8VbeKDV-myqhTIdpsBGM7AgzXXWUFidZJTFjXgCyGANUR-vjf/pub?gid=591450213&single=true&output=csv';
+// Data planning (No, Tanggal, Destination) — auto-load dari sheet
+let PLANNING_CSV  = ''; // upload/paste manual (tidak auto dari sheet)
+// GANTI dengan link CSV Master Distributor (opsional, utk autocomplete manual)
+const MASTER_DIST_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQWWl6xUcwoS3ym-dPPunI4XIWrZoi8VbeKDV-myqhTIdpsBGM7AgzXXWUFidZJTFjXgCyGANUR-vjf/pub?gid=852059310&single=true&output=csv';
+const ADMINS_DEFAULT = '6285885549707';
+// No WA admin (boleh lebih dari 1, pisah koma) — bisa diganti lewat ⚙ Pengaturan, tersimpan di browser
+function adminsStr(){
+  const v1 = String(muatSettings().adminHp||'').trim();
+  if(v1) return v1;
+  try{
+    const v = (localStorage.getItem('unifam_admin_hp')||'').trim();
+    if(v) return v;
+  }catch(e){}
+  return ADMINS_DEFAULT;
+}
+function normAdminHP(n){
+  let d = String(n||'').replace(/\D/g,'');
+  if(d.indexOf('0')===0) d = '62'+d.slice(1);
+  else if(d.indexOf('8')===0) d = '62'+d;
+  return d;
+}
+
+// Mapping label tipe → istilah sheet harga (samakan dengan konfirmasi.html)
+const TIPE_MAP = {
+  '20 ft'   : 'Kontainer-20" 32',
+  '20 ft c' : 'Kontainer-20" 32 (C)',
+  '40 ft'   : 'Kontainer-40"HQ 72'
+};
+function mapTipe(t){ return TIPE_MAP[norm(t)] || t; }
+
+let hargaData = [];   // [{expedition, dest, vtype, price, hp}]
+let distData  = [];   // [{kota, dist}]
+let rows      = [];   // [{id, tuj, tgl, tipe, kode, pilihEksp, pilihHarga}]
+let lelangRows = [];  // order dari lelang: tak tampil di tabel, tapi ikut hitung jam bersama
+let rowSeq    = 0;
+let checkedIds = new Set(); // baris tercentang utk multi-drop
+let dropSeq   = 0;          // nomor grup multi-drop
+let groupSel  = null; // ekspedisi terpilih di tahap 2
+
+// ============ UTIL ============
+function norm(s){ return String(s||'').toLowerCase().replace(/\s+/g,' ').trim(); }
+function cleanTxt(s){ return String(s||'').replace(/[\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g,'').trim(); }
+function toNumber(str){
+  if(str==null) return 0;
+  let s=String(str).replace(/Rp/gi,'').replace(/\s/g,'').trim();
+  if(!s) return 0;
+  s=s.replace(/,\d{1,2}$/,'').replace(/\./g,'').replace(/,/g,'');
+  return parseInt(s,10)||0;
+}
+function rupiah(n){ return 'Rp ' + (n||0).toLocaleString('id-ID'); }
+// truck kontainer (pakai harga di WA). Sisanya darat = tanpa harga
+function isKontainer(tipe){
+  const t=String(tipe||'').toLowerCase().replace(/\s+/g,'');
+  return t==='20ft' || t==='20ftc' || t==='40ft';
+}
+function fmtTgl(s){ if(!s) return '___'; return new Date(s+'T00:00:00').toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}); }
+// Rapikan tanggal apa pun (ISO penuh, dd-MMM-yy, dll) → "26 Jun 2026"
+// Rapikan jam (ISO penuh dari Sheets, atau "HH:MM") → "HH:MM"
+function tampilJam(raw){
+  if(raw==null || raw==='') return '';
+  let s=String(raw).trim();
+  // sudah HH:MM
+  let m=s.match(/^(\d{1,2}):(\d{2})/);
+  if(m) return String(m[1]).padStart(2,'0')+':'+m[2];
+  // ISO penuh (1899-12-30T01:52:48.000Z) → ambil jam:menit UTC
+  const d=new Date(s);
+  if(!isNaN(d.getTime()) && /T\d{2}:\d{2}/.test(s)){
+    return String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0');
+  }
+  return s;
+}
+// konversi tanggal (format apa pun) → "yyyy-mm-dd" untuk <input type="date">
+function tglKeInputDate(raw){
+  if(raw==null || raw==='') return '';
+  const s=String(raw).trim();
+  let m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if(m) return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+  const d=new Date(s);
+  if(!isNaN(d.getTime())) return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  return '';
+}
+function tampilTgl(raw){
+  if(raw==null || raw==='') return '-';
+  let s=String(raw).trim();
+  // ISO penuh dengan T (2026-06-26T17:00:00.000Z) atau tanggal biasa
+  const d=new Date(s);
+  if(!isNaN(d.getTime()) && /\d{4}-\d{2}-\d{2}/.test(s)){
+    return d.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
+  }
+  // coba parse format lain → ISO → format
+  const iso=parseTanggal(s);
+  if(iso) return fmtTgl(iso);
+  return s; // biarkan apa adanya kalau tak dikenali
+}
+
+function parseCSV(text){
+  let r=[],cur=[],val='',q=false;
+  for(let i=0;i<text.length;i++){
+    let c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){val+='"';i++;} else q=false; } else val+=c; }
+    else{ if(c==='"')q=true; else if(c===','){cur.push(val);val='';} else if(c==='\n'){cur.push(val);r.push(cur);cur=[];val='';} else if(c==='\r'){} else val+=c; }
+  }
+  if(val.length||cur.length){cur.push(val);r.push(cur);}
+  return r;
+}
+
+function toast(msg,type){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast show '+(type||'');
+  setTimeout(()=>t.className='toast',2600);
+}
+
+// ============ LOAD DATA ============
+function prosesRate(rws){
+  if(!rws || !rws.length){ setHargaStatus('⚠️ Data rate kosong'); return false; }
+  while(rws.length>1 && !rws[0].some(c=>String(c||'').trim())) rws=rws.slice(1);
+  const head=rws[0].map(h=>norm(h));
+  const idx=names=>head.findIndex(h=>names.some(n=>h.includes(n)));
+  const iV=idx(['vehicle','tipe','jenis']);
+  // kolom tujuan: Description / Delivery Name / Tujuan / Kota
+  let iD=idx(['description','tujuan','kota','city']);
+  if(iD<0) iD=idx(['delivery','dist']);
+  const iP=idx(['price','harga','rate']);
+  const iE=idx(['expedition','ekspedisi','vendor']);
+  const iK=idx(['kontak','no wa','whatsapp','no hp']);
+  const iA=idx(['asal','origin','dari','ship point']); // opsional: kosong = default (Cikande/langsung)
+  if(iD<0 || iP<0){
+    setHargaStatus('⚠️ Kolom rate tak dikenal: '+head.join(' | '));
+    return false;
+  }
+  hargaData=rws.slice(1).filter(r=>r.length>1).map(r=>({
+    expedition: cleanTxt(iE>=0?r[iE]:''),
+    dest: cleanTxt(r[iD]||''),
+    vtype: cleanTxt(iV>=0?r[iV]:''),
+    price: toNumber(r[iP]),
+    kontak: iK>=0 ? cleanTxt(r[iK]||'') : '',
+    asal: iA>=0 ? cleanTxt(r[iA]||'') : ''
+  })).filter(r=>r.dest && r.price>0);
+  setHargaStatus(hargaData.length ? ('✓ '+hargaData.length+' rate dimuat'+(window._rateSumber?(' ['+window._rateSumber+']'):'')) : '⚠️ Tidak ada rate valid');
+  renderRanks();
+  return hargaData.length>0;
+}
+
+function loadHarga(tries){
+  tries = tries||0;
+  setHargaStatus('Memuat data rate…'+(tries?(' (percobaan '+(tries+1)+')'):''));
+  const cb='cbRate'+Date.now();
+  let selesai=false;
+  // timeout 20 detik (GAS baca sheet langsung bisa lambat di load pertama)
+  const to=setTimeout(()=>{ if(!selesai){ selesai=true; loadHargaFetch(tries); } }, 20000);
+  window[cb]=function(resp){
+    // walau timeout sudah lewat, kalau GAS akhirnya balas dg data valid, tetap pakai
+    clearTimeout(to);
+    if(resp && resp.status==='ok' && resp.rows && resp.rows.length){
+      selesai=true;
+      delete window[cb]; if(sc.parentNode) sc.parentNode.removeChild(sc);
+      window._rateSumber = resp.sumber || '?';
+      prosesRate(resp.rows);
+      return;
+    }
+    if(selesai) return; selesai=true;
+    delete window[cb]; if(sc.parentNode) sc.parentNode.removeChild(sc);
+    loadHargaFetch(tries);
+  };
+  const sc=document.createElement('script');
+  sc.src=GAS_URL+'?action=getrate&callback='+cb;
+  sc.onerror=function(){ if(selesai) return; selesai=true; clearTimeout(to); delete window[cb]; loadHargaFetch(tries); };
+  document.body.appendChild(sc);
+}
+
+// fallback: fetch CSV langsung (kalau GAS gagal)
+function loadHargaFetch(tries){
+  tries = tries||0;
+  fetch(HARGA_CSV).then(r=>{
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.text();
+  }).then(txt=>{
+    prosesRate(parseCSV(txt));
+  }).catch(e=>{
+    console.warn('harga',e);
+    if(tries < 2){
+      setTimeout(()=>loadHargaFetch(tries+1), 1200);
+    }else{
+      setHargaStatus('⚠️ Gagal muat rate — ketuk coba lagi');
+      const el=document.getElementById('harga-status');
+      if(el){ el.style.cursor='pointer'; el.onclick=()=>loadHarga(0); }
+      const fb=document.getElementById('rate-fallback'); if(fb) fb.style.display='block';
+    }
+  });
+}
+function setHargaStatus(msg){
+  const el=document.getElementById('harga-status');
+  if(el) el.textContent=msg;
+}
+// Muat rate dari link yang ditempel manual
+function muatRateManual(){
+  const v=(document.getElementById('rate-link').value||'').trim();
+  if(!v){ toast('Tempel link CSV rate dulu','err'); return; }
+  HARGA_CSV=v;
+  document.getElementById('rate-fallback').style.display='none';
+  loadHarga(0);
+}
+let seqMap = {}; // norm(delivery name) -> {seq: angka, waktu: 'pagi'/'siang', raw}
+function prosesMaster(rws){
+  if(!rws || !rws.length) return;
+  const head=rws[0].map(h=>norm(h));
+  let iN=head.findIndex(h=>h.includes('delivery')||h.includes('distributor')||h.includes('dist name')||h.includes('nama'));
+  let iS=head.findIndex(h=>h.includes('seq'));
+  if(iN<0)iN=0; if(iS<0)iS=1;
+  seqMap={};
+  rws.slice(1).forEach(r=>{
+    const nama=cleanTxt(r[iN]||'');
+    const seqRaw=cleanTxt(r[iS]||'');
+    if(!nama) return;
+    const mAngka=seqRaw.match(/(\d+)/);
+    const seq=mAngka?parseInt(mAngka[1],10):999;
+    const waktu=/malam/i.test(seqRaw)?'malam':(/siang/i.test(seqRaw)?'siang':(/pagi/i.test(seqRaw)?'pagi':''));
+    seqMap[norm(nama)]={seq:seq, waktu:waktu, raw:seqRaw};
+  });
+  hitungJamMuat();
+}
+function loadDist(){
+  // coba GAS dulu (tahan blokir jaringan), fallback fetch langsung
+  const cb='cbMaster'+Date.now();
+  let selesai=false;
+  const to=setTimeout(()=>{ if(!selesai){ selesai=true; loadDistFetch(); } }, 6000);
+  window[cb]=function(resp){
+    if(selesai) return; selesai=true; clearTimeout(to);
+    delete window[cb]; if(sc.parentNode) sc.parentNode.removeChild(sc);
+    if(resp && resp.status==='ok' && resp.rows && resp.rows.length){ prosesMaster(resp.rows); }
+    else { loadDistFetch(); }
+  };
+  const sc=document.createElement('script');
+  sc.src=GAS_URL+'?action=getmaster&callback='+cb;
+  sc.onerror=function(){ if(selesai) return; selesai=true; clearTimeout(to); delete window[cb]; loadDistFetch(); };
+  document.body.appendChild(sc);
+}
+function loadDistFetch(){
+  if(!MASTER_DIST_CSV || MASTER_DIST_CSV.indexOf('PASTE_LINK')===0) return;
+  fetch(MASTER_DIST_CSV).then(r=>r.text()).then(txt=>{
+    prosesMaster(parseCSV(txt));
+  }).catch(e=>console.warn('master dist',e));
+}
+
+// ==== HITUNG JAM MUAT OTOMATIS (2 jalur paralel, 1000 karton/jam) ====
+const MUAT_MULAI = 7*60;      // 07:00 dalam menit
+const KARTON_PER_JAM_DEFAULT = 1450;
+
+// ==== PENGATURAN TARGET MUAT (tersimpan di browser) ====
+function muatSettings(){
+  try{ return JSON.parse(localStorage.getItem('unifam_muat_settings')||'{}'); }catch(e){ return {}; }
+}
+function simpanMuatSettings(s){
+  s.ts = Date.now();
+  try{ localStorage.setItem('unifam_muat_settings', JSON.stringify(s)); }catch(e){}
+  kirimSettingsServer(s, 0); // sebarkan ke semua perangkat
+}
+// kirim pengaturan ke server (tab "Pengaturan" di Sheet), ulang sampai 3x kalau gagal
+function kirimSettingsServer(s, percobaan){
+  gasJSONP('action=savesettings&data='+encodeURIComponent(JSON.stringify(s)), function(resp){
+    if(resp && resp.status==='ok'){ return; }
+    if(percobaan<2){ setTimeout(()=>kirimSettingsServer(s, percobaan+1), 1500); }
+    else{ toast('Pengaturan tersimpan di perangkat ini, tapi gagal dikirim ke server','err'); }
+  });
+}
+// ambil pengaturan dari server; kalau lebih baru dari yg lokal → pakai & hitung ulang jam
+function tarikSettingsServer(){
+  gasJSONP('action=getsettings', function(resp){
+    if(!resp || resp.status!=='ok' || !resp.settings) return;
+    const srv = resp.settings, lok = muatSettings();
+    if((srv.ts||0) > (lok.ts||0)){
+      try{ localStorage.setItem('unifam_muat_settings', JSON.stringify(srv)); }catch(e){}
+      try{ hitungJamMuat(); }catch(e){}
+    }else if((lok.ts||0) > (srv.ts||0)){
+      kirimSettingsServer(lok, 0); // lokal lebih baru (mis. tersimpan saat offline)
+    }
+  });
+}
+function modeMuat(){ return muatSettings().mode || 'karton'; }
+function kartonPerJam(){ return Number(muatSettings().kartonPerJam) || KARTON_PER_JAM_DEFAULT; }
+function targetTipe(){ return muatSettings().targetTipe || {}; }
+// durasi default (jam) untuk tipe yg belum diatur, dipakai jga sbg nilai awal form
+const TARGET_TIPE_DEFAULT = {
+  '20 FT':3,'20 FT C':3,'40 FT':4,'FUSO 48':2.5,'FUSO 46':2.5,'FUSO 45':2.5,'FUSO 36':2,
+  'FUSO 32':2,'FUSO 27':1.5,'FUSO 24':1.5,'TRONTON 70':3,'TRONTON 60':3,'WINGBOX':2,
+  'CD 17':1.5,'CD 20':1.5,'CD 24':1.5
+};
+
+// ==== SEKUEN (SHIFT) — jam mulai tiap sekuen, & pemetaan ekspedisi → sekuen ====
+// Sekuen 1: 07:00-15:00 · Sekuen 2: 15:00-23:00 · Sekuen 3: 23:00-07:00 (besok)
+const SEKUEN_JAM = { 1: 7*60, 2: 15*60, 3: 23*60 };
+function sekuenEkspedisi(){
+  const s = muatSettings().sekuenEkspedisi;
+  return (s && Object.keys(s).length) ? s : { 'UFF': 3 }; // default: UFF di Sekuen 3
+}
+
+function menitKeJam(m){
+  // balik ke hari baru kalau lewat 24 jam (jangan akumulasi 25:00 dst).
+  // CATATAN: tanggal (r.tgl) TIDAK ikut berubah di sini — tanggal tetap sesuai
+  // rencana muat, walau jam-nya lewat tengah malam (mis. Sekuen 3 → 01:00).
+  let mm = ((m % 1440) + 1440) % 1440;
+  const h=Math.floor(mm/60), mn=Math.round(mm%60);
+  return ('0'+h).slice(-2)+':'+('0'+mn).slice(-2);
+}
+function durasiItem(item, mode, kpj, target){
+  const tipeR = normalizeTipe(item.r.tipe||'');
+  const jamDefaultTipe = target[tipeR] != null ? target[tipeR] : (TARGET_TIPE_DEFAULT[tipeR] != null ? TARGET_TIPE_DEFAULT[tipeR] : 2);
+  if(mode==='tipe'){
+    return jamDefaultTipe*60;
+  }
+  // mode karton: kalau kartonnya kosong/0 (Kubikasi opsional, sering tak diisi),
+  // JANGAN durasi 0 (jalur tak pernah maju, semua numpuk di jam yg sama) —
+  // jatuh ke durasi default per tipe mobil.
+  if(!item.karton){ return jamDefaultTipe*60; }
+  return (item.karton/kpj)*60;
+}
+function hitungJamMuat(){
+  const gabungan = rows.concat(lelangRows.filter(r=>!r._jamTerkunci));
+  if(!gabungan.length || !Object.keys(seqMap).length) return;
+  const mode = modeMuat();
+  const kpj = kartonPerJam();
+  const target = targetTipe();
+  const sekuenMap = sekuenEkspedisi(); // { 'UFF': 3, ... } — nama ekspedisi HARUS uppercase
+  const WAKTU_SEKUEN = { pagi:1, siang:2, malam:3 }; // dari label tabel master (Pagi/Siang/Malam)
+
+  // SATU jalur bersama sepanjang hari (gabung order planning + lelang) —
+  // Pagi/Siang/Malam/ekspedisi khusus (mis. UFF) CUMA menentukan URUTAN
+  // PRIORITAS diproses, BUKAN jam wajib ditunggu. Kalau prioritas di atasnya
+  // sedikit/kosong, langsung lanjut ke berikutnya.
+  const list=gabungan.map(r=>{
+    const info=seqMap[norm(r.tuj)];
+    const karton=toNumber(r.total)||0;
+    const eksp = String(r.pilihEksp||'').toUpperCase().trim();
+    const prioritasEksp = eksp && sekuenMap[eksp] ? sekuenMap[eksp] : null;
+    const prioritasWaktu = (info && info.waktu && WAKTU_SEKUEN[info.waktu]) ? WAKTU_SEKUEN[info.waktu] : null;
+    // ekspedisi dg sekuen khusus (mis. UFF) selalu PALING AKHIR (prioritas 100+),
+    // biar tak tercampur dg urutan pagi/siang/malam tapi tetap fleksibel (bukan jam wajib)
+    const prioritas = prioritasEksp ? (100+prioritasEksp) : (prioritasWaktu || 50);
+    return { r:r, seq: info?info.seq:9999, ketemu:!!info, karton:karton, prioritas:prioritas };
+  });
+  // urut: prioritas dulu (Pagi→Siang→Malam→...→UFF paling akhir), lalu seq asli, lalu karton
+  list.sort((a,b)=> a.prioritas-b.prioritas || a.seq-b.seq || b.karton-a.karton);
+
+  const jalur=[MUAT_MULAI, MUAT_MULAI]; // 2 jalur paralel, dipakai BERSAMA sepanjang hari
+  const lelangJamBaru=[]; // {draft_id, jam} — utk disimpan langsung ke sheet
+  list.forEach(item=>{
+    if(!item.ketemu){
+      item.r.jam='CEK MANUAL';
+      item.r.jamMuatAuto=true;
+      return;
+    }
+    const idx = jalur[0]<=jalur[1] ? 0 : 1;
+    const mulai = jalur[idx];
+    item.r.jam = menitKeJam(mulai); // tanggal (r.tgl) TIDAK disentuh
+    item.r.jamMuatAuto = true;
+    jalur[idx] = mulai + durasiItem(item, mode, kpj, target);
+    // order lelang tak tampil di tabel → simpan jam-nya LANGSUNG ke sheet
+    if(item.r.draft_id && lelangRows.indexOf(item.r)>=0){
+      lelangJamBaru.push({draft_id:item.r.draft_id, jam:item.r.jam});
+    }
+  });
+  simpanJamLelang(lelangJamBaru);
+
+  renderRows();
+}
+// simpan jam hasil hitung utk order lelang langsung ke Planning Draft (satu per satu, ringan)
+function simpanJamLelang(list){
+  if(!list.length) return;
+  list.forEach(it=>{
+    gasJSONP('action=updatedraft&draft_id='+encodeURIComponent(it.draft_id)+'&field=jam&value='+encodeURIComponent(it.jam));
+  });
+}
+
+// Auto-load data planning (No, Tanggal, Destination, Truck) dari sheet
+function loadPlanning(){
+  if(!PLANNING_CSV){ return; }
+  setHargaStatus('Memuat data planning…');
+  fetch(PLANNING_CSV).then(r=>r.text()).then(txt=>{
+    const matrix=parseCSV(txt);
+    const recs=recordsFromMatrix(matrix);
+    // diagnostik: tampilkan jumlah baris mentah & terbaca
+    setHargaStatus('Planning: '+matrix.length+' baris CSV, '+recs.length+' terbaca');
+    if(recs.length){
+      buildRowsFrom(recs);
+    }else{
+      rows=[]; renderRows();
+      toast('Planning kosong setelah parse ('+matrix.length+' baris CSV)','err');
+    }
+  }).catch(e=>{
+    console.warn('planning',e);
+    rows=[]; renderRows();
+    setHargaStatus('⚠️ Gagal fetch planning: '+e.message);
+    toast('Gagal muat planning','err');
+  });
+}
+
+// Muat ulang data planning dari sheet (tombol Refresh)
+function refreshPlanning(){
+  loadPlanning();
+}
+
+// ============ RANKING ============
+// Ambil nama kota dari teks tujuan (mis. "PT. Borwita - MANADO" → "manado")
+function extractKota(tujuan){
+  let s = String(tujuan||'');
+  // buang suffix dalam kurung, mis "(UF-C)"
+  s = s.replace(/\([^)]*\)/g,'').trim();
+  // ambil bagian setelah pemisah " - " TERAKHIR (mis. "PROVINSI - KOTA" → KOTA).
+  // Kota bertanda strip TANPA spasi (PARE-PARE) tetap utuh krn cuma 1 pemisah " - " yg ada.
+  let kota;
+  const m = s.match(/.*\s[-–—]\s(.+)$/); // ".*" rakus → cari pemisah TERAKHIR
+  if (m) {
+    kota = m[1];
+  } else {
+    // fallback: pisah di strip terakhir apa pun
+    const idx = s.search(/[-–—](?!.*[-–—])/);
+    kota = idx >= 0 ? s.slice(idx+1) : s;
+  }
+  return norm(kota);
+}
+
+// Cari semua ekspedisi untuk tujuan + tipe (+ asal opsional), urut termurah.
+// asal kosong/undefined ATAU "CIKANDE" → dianggap SAMA (default/langsung).
+// asal diisi nama pelabuhan lain (mis. 'SURABAYA','MOJOSARI') → cocokkan yg SAMA persis.
+function normAsal(a){
+  const s=String(a||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+  return (!s || s==='cikande') ? '' : s; // kosong & cikande disamakan
+}
+function getRanking(tujuan, tipe, asal){
+  if(!hargaData.length || !tujuan) return [];
+  const kota = extractKota(tujuan);
+  const v = norm(mapTipe(tipe));
+  const noSpace = s => String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+  const vNS = noSpace(v);
+  const kotaNS = noSpace(kota);
+  if(!kotaNS) return [];
+  const asalNS = normAsal(asal);
+  // cocok KOTA vs KOTA, harus SAMA PERSIS (abaikan spasi/tanda baca)
+  // "PT. A - BALIKPAPAN" & "PT. B - BALIKPAPAN" → sama; kota beda → tidak tertukar
+  const destMatch = h => {
+    const dKotaNS = noSpace(extractKota(h.dest));
+    return dKotaNS && dKotaNS===kotaNS;
+  };
+  // cocok ASAL: kosong/CIKANDE ketemu kosong/CIKANDE, isi lain ketemu yg sama (tak tertukar antar rute)
+  const asalMatch = h => normAsal(h.asal) === asalNS;
+  // cocok tipe: PERSIS dulu (biar 20 FT tak nyangkut ke 20 FT C / combo)
+  const pilihCombo = /c$/.test(vNS) || /\(c\)/.test(v);
+  const vtypeMatch = h => {
+    if(!v) return true;
+    const hv = norm(h.vtype);
+    const hvNS = noSpace(h.vtype);
+    // 1) sama persis (utama)
+    if(hv===v || hvNS===vNS) return true;
+    // 2) fallback longgar — reguler & combo TIDAK boleh saling cocok
+    const hvCombo = /\(c\)/.test(hv) || /c$/.test(hvNS);
+    if(hvCombo !== pilihCombo) return false;
+    return hvNS && vNS && (hvNS.includes(vNS) || vNS.includes(hvNS));
+  };
+  let list=hargaData.filter(h=>destMatch(h) && vtypeMatch(h) && asalMatch(h));
+  // dedup per ekspedisi (ambil termurah)
+  const best={};
+  list.forEach(h=>{
+    const k=norm(h.expedition);
+    if(!best[k] || h.price<best[k].price) best[k]=h;
+  });
+  return Object.values(best).sort((a,b)=>a.price-b.price);
+}
+
+// ============ ROWS ============
+// ============ IMPORT (UPLOAD / PASTE) ============
+function switchImp(which){
+  document.getElementById('tab-upload').classList.toggle('on', which==='upload');
+  document.getElementById('tab-paste').classList.toggle('on', which==='paste');
+  document.getElementById('imp-upload').style.display = which==='upload'?'block':'none';
+  document.getElementById('imp-paste').style.display = which==='paste'?'block':'none';
+}
+
+// Normalisasi tanggal beragam format → YYYY-MM-DD (untuk input date)
+const BULAN_ID={jan:0,feb:1,mar:2,apr:3,mei:4,may:4,jun:5,jul:6,agu:7,aug:7,agt:7,sep:8,okt:9,oct:9,nov:10,des:11,dec:11};
+function parseTanggal(raw){
+  if(raw==null) return '';
+  // Angka serial Excel
+  if(typeof raw==='number' && raw>20000 && raw<60000){
+    const d=new Date(Math.round((raw-25569)*86400*1000));
+    return d.toISOString().slice(0,10);
+  }
+  let s=String(raw).trim();
+  if(!s) return '';
+  // sudah ISO
+  let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return m[1]+'-'+m[2]+'-'+m[3];
+  // dd-MMM-yy / dd MMM yyyy  (02-Jan-26)
+  m=s.match(/^(\d{1,2})[\s\-\/]+([A-Za-z]{3,})[\s\-\/]+(\d{2,4})$/);
+  if(m){
+    const dd=String(parseInt(m[1],10)).padStart(2,'0');
+    const mo=BULAN_ID[m[2].slice(0,3).toLowerCase()];
+    let yy=parseInt(m[3],10); if(yy<100) yy+=2000;
+    if(mo!=null) return yy+'-'+String(mo+1).padStart(2,'0')+'-'+dd;
+  }
+  // dd/mm/yyyy atau dd-mm-yyyy
+  m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if(m){
+    const dd=String(parseInt(m[1],10)).padStart(2,'0');
+    const mo=String(parseInt(m[2],10)).padStart(2,'0');
+    let yy=parseInt(m[3],10); if(yy<100) yy+=2000;
+    return yy+'-'+mo+'-'+dd;
+  }
+  return ''; // tak dikenali — biar diisi manual
+}
+
+// Susun rows dari array baris [{no,tgl,dest}]
+function buildRowsFrom(records){
+  if(!records.length){ toast('Tidak ada data terbaca','err'); return; }
+  const baru = records.map(rec=>({
+    tuj: cleanTxt(rec.dest||''),
+    tgl: parseTanggal(rec.tgl) || cleanTxt(rec.tgl||''),
+    jam: '',
+    sales: cleanTxt(rec.sales||''),
+    total: cleanTxt(rec.total||''),
+    kubik: cleanTxt(rec.kubik||''),
+    tipe: normalizeTipe(cleanTxt(rec.tipe||'')),
+    pilihEksp: '', pilihHarga: ''
+  })).filter(r=>r.tuj);
+  if(!baru.length){ toast('Kolom tujuan kosong semua','err'); return; }
+
+  // Jika paste BANYAK (≥5) → tawarkan ganti draft lama dengan tanggal sama
+  if(baru.length >= 5){
+    // kumpulkan tanggal unik dari data baru
+    const tglBaru = [...new Set(baru.map(r=>r.tgl).filter(Boolean))];
+    // hitung berapa draft lama (di layar) yang tanggalnya sama & belum terkirim
+    const lamaSama = rows.filter(r=> r.isDraft && tglBaru.includes(r.tgl));
+    if(lamaSama.length > 0){
+      const pesan = 'Ada '+lamaSama.length+' draft lama dengan tanggal sama ('+tglBaru.join(', ')+').\n\nGanti dengan data baru, atau tambahkan saja?';
+      if(confirm(pesan + '\n\n[OK] = GANTI (hapus draft lama tgl itu)\n[Cancel] = TAMBAH saja')){
+        // hapus draft lama tgl sama dulu, lalu simpan baru
+        hapusDraftTanggalLalu(tglBaru, ()=> simpanDraftBatch(baru, 0, 0));
+        return;
+      }
+    }
+  }
+  // default: tambah
+  toast('Menyimpan '+baru.length+' order ke Sheet…','ok');
+  simpanDraftBatch(baru, 0, 0);
+}
+
+// hapus draft lama (belum terkirim) untuk daftar tanggal, lalu jalankan callback
+function hapusDraftTanggalLalu(tglList, done){
+  // buang dari tampilan dulu
+  rows = rows.filter(r=> !(r.isDraft && tglList.includes(r.tgl)) );
+  renderRows();
+  let idx=0;
+  function next(){
+    if(idx>=tglList.length){ toast('Draft lama diganti','ok'); done(); return; }
+    const tgl=tglList[idx++];
+    gasJSONP('action=deldrafttgl&tanggal='+encodeURIComponent(tgl), function(){ next(); });
+  }
+  next();
+}
+
+// kirim draft per potong kecil (2 order/kirim) supaya URL tidak kepanjangan
+function simpanDraftBatch(list, mulai, sukses, percobaan, reqId){
+  const UKURAN = 6; // order per request (dikurangi jumlah round-trip drpd 2)
+  percobaan = percobaan || 0;
+  if(mulai >= list.length){
+    toast(sukses+' order tersimpan','ok');
+    loadDraft();
+    return;
+  }
+  // reqId TETAP SAMA sepanjang percobaan ulang batch ini (idempotency key) —
+  // supaya server tahu ini permintaan yang SAMA kalau retry, bukan batch baru.
+  if(!reqId) reqId = 'batch'+mulai+'_'+Date.now()+'_'+Math.floor(Math.random()*100000);
+  const potong = list.slice(mulai, mulai+UKURAN);
+  gasJSONP('action=adddraft&reqId='+encodeURIComponent(reqId)+'&items='+encodeURIComponent(JSON.stringify(potong)), function(resp){
+    if(resp && resp.status==='ok'){
+      simpanDraftBatch(list, mulai+UKURAN, sukses+potong.length, 0);
+    }else if(percobaan < 2){
+      // coba ulang otomatis (maks 2x) sebelum menyerah — sering cuma lambat/timeout sesaat.
+      // reqId yang SAMA dikirim lagi → server tak akan tambah baris dobel.
+      setHargaStatus('⏳ Percobaan ulang simpan (ke-'+(percobaan+2)+')…');
+      setTimeout(()=> simpanDraftBatch(list, mulai, sukses, percobaan+1, reqId), 1500);
+    }else{
+      const pesan = resp ? (resp.message || JSON.stringify(resp)) : 'tidak ada respons (cek koneksi/URL GAS)';
+      setHargaStatus('⚠️ Gagal simpan (order ke-'+(mulai+1)+'): '+pesan);
+      alert('GAGAL SIMPAN:\n\n'+pesan+'\n\n('+sukses+' order sudah tersimpan sebelum gagal)');
+      toast('Gagal simpan sebagian','err');
+      if(sukses>0) loadDraft();
+    }
+  });
+}
+
+
+// Opsi jam kelipatan 30 menit
+function jamOptions(sel){
+  let opt='<option value="">--:--</option>';
+  // nilai auto non-standar (mis. 09:18) atau CEK MANUAL → tetap tampilkan
+  const standar = /^\d{2}:(00|30)$/.test(sel);
+  if(sel && !standar){
+    opt+=`<option value="${sel}" selected>${sel}</option>`;
+  }
+  for(let h=0;h<24;h++) for(let m=0;m<60;m+=30){
+    const hh=String(h).padStart(2,'0'), mm=String(m).padStart(2,'0'), v=hh+':'+mm;
+    opt+=`<option value="${v}" ${sel===v?'selected':''}>${v}</option>`;
+  }
+  return opt;
+}
+
+// Opsi jenis truck (pilih manual). Daftar bawaan + tipe dari sheet rate (otomatis).
+const TRUCK_BAWAAN = ['20 FT','20 FT C','40 FT','FUSO 48','FUSO 46','FUSO 45','FUSO 36','FUSO 32','FUSO 27','FUSO 24','TRONTON 70','TRONTON 60','WINGBOX','CD 17','CD 20','CD 24'];
+// peta nama vtype rate → label truck (kontainer)
+function vtypeKeTruck(v){
+  const n=norm(v);
+  if(n.indexOf('kontainer-20" 32 (c)')>=0 || n==='kontainer-20" 32 (c)') return '20 FT C';
+  if(n.indexOf('kontainer-20"')>=0) return '20 FT';
+  if(n.indexOf('kontainer-40"')>=0) return '40 FT';
+  return String(v||'').trim(); // darat: pakai apa adanya (FUSO 32, CD 24, dst)
+}
+function daftarTruck(){
+  const set = TRUCK_BAWAAN.slice();
+  // tambahkan tipe dari data rate yang belum ada di daftar bawaan
+  (hargaData||[]).forEach(h=>{
+    const t = vtypeKeTruck(h.vtype);
+    if(t && set.indexOf(t)<0) set.push(t);
+  });
+  return set;
+}
+function truckOptions(sel){
+  const list=daftarTruck();
+  // kalau nilai terpilih tak ada di daftar (tipe lama), tetap tampilkan
+  if(sel && list.indexOf(sel)<0) list.push(sel);
+  let opt='<option value="">-- pilih --</option>';
+  list.forEach(t=>{ opt+=`<option value="${t}" ${sel===t?'selected':''}>${t}</option>`; });
+  return opt;
+}
+
+// Samakan label truck dari sheet ke pilihan standar (toleran spasi/kapital)
+function normalizeTipe(t){
+  const n=norm(t);
+  if(!n) return '';
+  const map={
+    '20 ft':'20 FT','20ft':'20 FT','20':'20 FT',
+    '20 ft c':'20 FT C','20ft c':'20 FT C','20 c':'20 FT C','20c':'20 FT C','20 ft combo':'20 FT C',
+    '40 ft':'40 FT','40ft':'40 FT','40':'40 FT','40 hq':'40 FT','40 ft hq':'40 FT',
+    'fuso 48':'FUSO 48','fuso48':'FUSO 48',
+    'fuso 46':'FUSO 46','fuso46':'FUSO 46',
+    'fuso 45':'FUSO 45','fuso45':'FUSO 45',
+    'fuso 36':'FUSO 36','fuso36':'FUSO 36',
+    'fuso 32':'FUSO 32','fuso32':'FUSO 32',
+    'fuso 27':'FUSO 27','fuso27':'FUSO 27',
+    'fuso 24':'FUSO 24','fuso24':'FUSO 24',
+    'tronton 70':'TRONTON 70','tronton70':'TRONTON 70','tronton 60':'TRONTON 60','tronton60':'TRONTON 60','tronton':'TRONTON 70',
+    'wingbox':'WINGBOX','wing box':'WINGBOX',
+    'cd 17':'CD 17','cd17':'CD 17',
+    'cd 20':'CD 20','cd20':'CD 20',
+    'cd 24':'CD 24','cd24':'CD 24'
+  };
+  return map[n] || t; // kalau tak dikenali, pakai apa adanya
+}
+
+// Deteksi kolom dari header (format: Tanggal, Sales Admin, Dist, Total Order, Sum of M3, Truck Type)
+function recordsFromMatrix(matrix){
+  if(!matrix.length) return [];
+  // default posisi sesuai header baru
+  let start=0, iTgl=0, iSales=1, iDest=2, iTotal=3, iKubik=4, iTipe=5;
+  const head=matrix[0].map(c=>norm(c));
+  // deteksi header: cocok kata utuh (hindari "DESTI" ketangkap sbg "dest")
+  const kataHeader=['distributor','destination','tujuan','tanggal','tgl','truck type','truck','sum of m3','m3','sales admin','kubikasi','delivery name'];
+  const hasHeader = head.some(c=> kataHeader.some(k=> c===k || c===k.replace(/\s/g,'')) );
+  if(hasHeader){
+    const fT=head.findIndex(c=>c==='tanggal'||c==='tgl'||c==='date');
+    const fSales=head.findIndex(c=>c.includes('sales')||c==='admin');
+    const fD=head.findIndex(c=>c==='distributor'||c==='destination'||c==='tujuan'||c==='dist'||c==='delivery name'||c==='dest');
+    const fTotal=head.findIndex(c=>c==='total'||c.includes('total order'));
+    const fKub=head.findIndex(c=>c.includes('m3')||c==='kubikasi'||c==='cbm'||c==='volume');
+    const fK=head.findIndex(c=>c.includes('truck')||c==='type'||c==='kendaraan'||c==='tipe');
+    if(fT>=0)iTgl=fT; if(fSales>=0)iSales=fSales; if(fD>=0)iDest=fD;
+    if(fTotal>=0)iTotal=fTotal; if(fKub>=0)iKubik=fKub; if(fK>=0)iTipe=fK;
+    start=1;
+  }
+  const out=[];
+  for(let i=start;i<matrix.length;i++){
+    const row=matrix[i]; if(!row||!row.length) continue;
+    const dest=row[iDest], tgl=row[iTgl];
+    if((dest==null||String(dest).trim()==='') && (tgl==null||String(tgl).trim()==='')) continue;
+    out.push({
+      tgl:tgl, sales:row[iSales], dest:dest,
+      total:row[iTotal], kubik:row[iKubik], tipe:row[iTipe]
+    });
+  }
+  return out;
+}
+
+function handleFile(input){
+  const file=input.files && input.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const data=new Uint8Array(e.target.result);
+      const wb=XLSX.read(data,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const matrix=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
+      buildRowsFrom(recordsFromMatrix(matrix));
+    }catch(err){
+      console.error(err); toast('Gagal baca file','err');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  input.value='';
+}
+
+function parsePaste(){
+  const txt=document.getElementById('paste-area').value;
+  if(!txt.trim()){ toast('Tempel data dulu','err'); return; }
+  const lines=txt.split('\n').filter(l=>l.trim());
+  const matrix=lines.map(l=> l.indexOf('\t')>=0 ? l.split('\t') : l.split(',') );
+  buildRowsFrom(recordsFromMatrix(matrix));
+}
+
+function addRow(){
+  const id=++rowSeq;
+  rows.push({id, tuj:'', tgl:'', tipe:'', pilihEksp:'', pilihHarga:0});
+  renderRows();
+}
+function delRow(id){
+  const r=rows.find(x=>x.id===id);
+  if(!r) return;
+  if(!confirm('Arsipkan order ini? Akan dipindah ke tab Arsip.')) return;
+  if(r.isDraft && r.draft_id){
+    gasJSONP('action=deldraft&draft_id='+encodeURIComponent(r.draft_id));
+  } else if(r.fromSheet && r.noOrder){
+    // order final → hapus dari Order Armada
+    gasJSONP('action=delorder&no_order='+encodeURIComponent(r.noOrder)+'&tuj='+encodeURIComponent(r.tuj));
+  }
+  rows=rows.filter(x=>x.id!==id);
+  checkedIds.delete(id);
+  renderRows();
+  toast('Order diarsipkan','ok');
+}
+
+// hapus beberapa sekaligus (yang tercentang)
+function hapusTercentang(){
+  const ids=[...checkedIds];
+  if(!ids.length){ toast('Centang order yang mau dihapus','err'); return; }
+  if(!confirm('Arsipkan '+ids.length+' order tercentang? Dipindah ke tab Arsip.')) return;
+  ids.forEach(id=>{
+    const r=rows.find(x=>x.id===id);
+    if(!r) return;
+    if(r.isDraft && r.draft_id){
+      gasJSONP('action=deldraft&draft_id='+encodeURIComponent(r.draft_id));
+    } else if(r.fromSheet && r.noOrder){
+      gasJSONP('action=delorder&no_order='+encodeURIComponent(r.noOrder)+'&tuj='+encodeURIComponent(r.tuj));
+    }
+  });
+  rows=rows.filter(x=>!checkedIds.has(x.id));
+  checkedIds.clear();
+  renderRows();
+  toast(ids.length+' order diarsipkan','ok');
+}
+
+// ===== MULTI-DROP =====
+function toggleCheck(id, on){
+  if(on) checkedIds.add(id); else checkedIds.delete(id);
+  updateDropBar();
+}
+function updateDropBar(){
+  const bar=document.getElementById('drop-bar');
+  if(!bar) return;
+  const n=checkedIds.size;
+  bar.style.display = n>=1 ? 'flex' : 'none';
+  const lbl=document.getElementById('drop-count');
+  if(lbl) lbl.textContent=n;
+  // tombol gabung hanya aktif kalau >=2
+  const gbtn=document.getElementById('btn-gabung');
+  if(gbtn) gbtn.style.display = n>=2 ? 'inline-block' : 'none';
+}
+// gabungkan baris tercentang jadi 1 multi-drop
+function gabungMultidrop(){
+  const ids=[...checkedIds];
+  if(ids.length<2){ toast('Centang minimal 2 tujuan','err'); return; }
+  const grp=rows.filter(r=>ids.includes(r.id));
+  // semua truck harus sama (1 mobil)
+  const tipe0=grp[0].tipe;
+  if(grp.some(r=>!r.tipe || r.tipe!==tipe0)){
+    toast('Truck harus sama & terisi semua','err'); return;
+  }
+  const gid = ++dropSeq;
+  grp.forEach(r=>{ r.dropGroup=gid; r.biayaDrop=0; });
+  checkedIds.clear();
+  updateDropBar();
+  renderRows();
+  toast('Multi-drop dibuat. Isi biaya tambahan di baris drop.','ok');
+}
+// set biaya tambahan multi-drop (input inline)
+function setBiayaDrop(gid, val){
+  const b=toNumber(val)||0;
+  rows.forEach(r=>{ if(r.dropGroup===gid) r.biayaDrop=b; });
+  // update total tanpa render ulang (biar input tidak ke-reset)
+  const grpRows=rows.filter(r=>r.dropGroup===gid);
+  const rateTertinggi = Math.max(...grpRows.map(x=>x.pilihHarga||0));
+  const total = rateTertinggi + b;
+  const el=document.getElementById('drop-total-'+gid);
+  if(el) el.textContent='Total: '+rupiah(total);
+}
+// batalkan grup multi-drop dari 1 baris
+function pisahMultidrop(gid){
+  rows.forEach(r=>{ if(r.dropGroup===gid){ r.dropGroup=null; r.biayaDrop=0; } });
+  renderRows();
+}
+
+// ===== MULTI LEG (darat + laut, 1 tujuan 2 ekspedisi) =====
+const PELABUHAN_LIST = ['SURABAYA','MOJOSARI'];
+function toggleMultiLeg(id, on){
+  const r=rows.find(x=>x.id===id); if(!r) return;
+  r.multiLeg = !!on;
+  if(on){
+    if(!r.pelabuhan) r.pelabuhan = PELABUHAN_LIST[0];
+    // leg2 (laut) mewarisi pilihan lama kalau ada
+    if(!r.tipe2) r.tipe2='';
+    if(!r.eksp2){ r.eksp2=''; r.harga2=0; }
+  }else{
+    r.pelabuhan=''; r.tipe2=''; r.eksp2=''; r.harga2=0;
+  }
+  if(r.isDraft) updateDraftField(r,'multiLeg');
+  renderRows();
+}
+function setPelabuhan(id,val){
+  const r=rows.find(x=>x.id===id); if(!r) return;
+  r.pelabuhan=val; r.pilihEksp=''; r.pilihHarga=0; // rate darat berubah
+  renderRows();
+}
+function setTipeLeg(id,leg,val){
+  const r=rows.find(x=>x.id===id); if(!r) return;
+  if(leg===1){ r.tipe=val; r.pilihEksp=''; r.pilihHarga=0; }
+  else { r.tipe2=val; r.eksp2=''; r.harga2=0; }
+  renderRows();
+}
+function pilihEkspLeg(id,leg,eksp,price){
+  const r=rows.find(x=>x.id===id); if(!r) return;
+  if(leg===1){ r.pilihEksp=eksp; r.pilihHarga=price; }
+  else { r.eksp2=eksp; r.harga2=price; }
+  if(r.isDraft){ updateDraftField(r,'pilihEksp'); updateDraftField(r,'pilihHarga'); }
+  renderRows();
+}
+// total multi leg = rate darat + rate laut
+function totalMultiLeg(r){
+  return (r.pilihHarga||0) + (r.harga2||0);
+}
+// ranking untuk leg darat (ke pelabuhan) / leg laut (ke tujuan akhir)
+function rankingLeg(r, leg){
+  if(leg===1) return (r.pelabuhan && r.tipe) ? getRanking(r.pelabuhan, r.tipe) : [];
+  // LEG 2: rate khusus dari pelabuhan (asal) ke tujuan akhir — beda dgn rate langsung
+  return (r.tuj && r.tipe2) ? getRanking(r.tuj, r.tipe2, r.pelabuhan) : [];
+}
+
+// ===== Draft order tersimpan di Google Sheet (multi-admin) =====
+// helper kirim ke GAS via JSONP
+function gasJSONP(params, onResp){
+  const cb='cbG'+Date.now()+Math.floor(Math.random()*1000);
+  let selesai=false;
+  const to=setTimeout(()=>{ if(selesai) return; selesai=true; delete window[cb]; if(onResp) onResp(null); }, 20000);
+  window[cb]=function(resp){
+    if(selesai) return; selesai=true; clearTimeout(to);
+    delete window[cb]; if(sc.parentNode) sc.parentNode.removeChild(sc); if(onResp) onResp(resp);
+  };
+  const sc=document.createElement('script');
+  sc.src=GAS_URL+'?'+params+'&callback='+cb;
+  sc.onerror=function(){ if(selesai) return; selesai=true; clearTimeout(to); delete window[cb]; if(onResp) onResp(null); };
+  document.body.appendChild(sc);
+}
+
+// simpanDraft tidak dipakai lagi (digantikan update per-field ke Sheet)
+function simpanDraft(){ /* no-op: draft kini di Sheet */ }
+
+// update 1 field draft ke Sheet
+function updateDraftField(r, field){
+  if(!r || !r.draft_id) return;
+  const val = r[field]!=null ? r[field] : '';
+  const idLama = r.draft_id;
+  gasJSONP('action=updatedraft&draft_id='+encodeURIComponent(r.draft_id)+
+           '&field='+encodeURIComponent(field)+'&value='+encodeURIComponent(val),
+    function(resp){
+      // kalau server bikin No Order baru (draft PENDING diisi tanggal), pakai yang baru
+      if(resp && resp.draft_id_baru && r.draft_id===idLama){
+        r.draft_id = resp.draft_id_baru;
+        renderRows();
+      }
+    });
+}
+// ==== FILTER TANGGAL ====
+let filterTgl = '';
+function setFilterTgl(v){ filterTgl = v||''; renderRows(); }
+// daftar tanggal unik dari data, isi dropdown
+// normalisasi tanggal → "yyyy-mm-dd" untuk perbandingan (apa pun formatnya)
+function kunciTgl(raw){
+  if(raw==null || raw==='') return '';
+  const s=String(raw).trim();
+  // dd/mm/yyyy atau dd-mm-yyyy
+  let m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if(m) return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+  // ISO / Date parseable
+  const d=new Date(s);
+  if(!isNaN(d.getTime())){
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+  return s;
+}
+// ambil tanggal dari baris (draft pakai .tgl, order final pakai .tglText)
+function tglBaris(r){ return (r && (r.tgl || r.tglText)) || ''; }
+function updateFilterTgl(){
+  const sel=document.getElementById('filter-tgl');
+  if(!sel) { console.warn('filter-tgl tidak ditemukan'); return; }
+  try{
+    const map={};
+    (rows||[]).forEach(r=>{
+      const k=kunciTgl(tglBaris(r));
+      if(!k) return;
+      if(!map[k]) map[k]={ contoh:tglBaris(r), n:0 };
+      map[k].n++;
+    });
+    const keys=Object.keys(map).sort();
+    const kini=filterTgl;
+    let html='<option value="">— semua tanggal ('+(rows?rows.length:0)+') —</option>';
+    keys.forEach(k=>{
+      const lbl=tampilTgl(map[k].contoh)+' ('+map[k].n+')';
+      html+='<option value="'+k+'"'+(kini===k?' selected':'')+'>'+lbl+'</option>';
+    });
+    sel.innerHTML=html;
+    sel.disabled = keys.length===0;
+    if(keys.length===0){
+      sel.innerHTML='<option value="">(belum ada tanggal)</option>';
+    }
+  }catch(e){ console.warn('updateFilterTgl error', e); }
+}
+// baris yang lolos filter
+function rowsTampil(){
+  return filterTgl ? rows.filter(r=>kunciTgl(tglBaris(r))===filterTgl) : rows;
+}
+
+function renderRows(){
+  updateFilterTgl();
+  const info=document.getElementById('filter-info');
+  if(info) info.textContent = filterTgl ? ('menampilkan '+rowsTampil().length+' dari '+rows.length+' order') : '';
+  renderTable();
+  renderCards();
+}
+
+// ==== MODE KARTU (HP) ====
+let expandRate={}; // id -> true kalau tampil semua rate
+// bangun grid rate 2x2 untuk 1 leg
+function gridRate(r, leg, rank, pilihNow){
+  if(!rank.length) return '<div class="oc-na">Rate tidak ditemukan</div>';
+  const tampil = expandRate[r.id+'_'+leg] ? rank.length : Math.min(4, rank.length);
+  let cells='';
+  for(let k=0;k<tampil;k++){
+    const h=rank[k];
+    const on = norm(pilihNow)===norm(h.expedition);
+    const eksp=(h.expedition||'-').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    cells+=`<div class="oc-rk ${k===0?'r1':''} ${on?'on':''}" onclick="pilihEkspLeg(${r.id},${leg},&quot;${eksp}&quot;,${h.price})">
+      <div class="oc-rk-top"><span class="oc-rk-num">${on?'✓':('R'+(k+1))}</span><span class="oc-rk-eksp">${h.expedition||'-'}</span></div>
+      <div class="oc-rk-rate">${rupiah(h.price)}</div>
+    </div>`;
+  }
+  let out='<div class="oc-grid">'+cells+'</div>';
+  if(rank.length>4){
+    out+=`<div class="oc-more" onclick="toggleRate('${r.id}_${leg}')">${expandRate[r.id+'_'+leg]?'▲ tampilkan 4 saja':('+ '+(rank.length-4)+' ekspedisi lainnya ▾')}</div>`;
+  }
+  return out;
+}
+
+function renderCards(){
+  const wrap=document.getElementById('card-wrap');
+  if(!wrap) return;
+  const vis=rowsTampil(); if(!vis.length){ wrap.innerHTML='<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px">Tidak ada order pada tanggal ini</div>'; return; }
+  let html='';
+  rowsTampil().forEach((r,i)=>{
+    const st = r.status || 'Baru';
+    let badge, cls='ocard';
+    if(st==='Belum') badge='<span class="oc-badge st-belum">⏳ Belum</span>';
+    else if(st==='Tidak') badge='<span class="oc-badge st-tidak">❌ Tidak</span>';
+    else badge='<span class="oc-badge st-baru">🆕 Baru</span>';
+    if(r.pilihEksp) cls+=' sel';
+    if(r.dropGroup) cls+=' drop';
+    if(r.multiLeg){ cls+=' mleg'; badge+=' <span class="oc-badge" style="background:#EDE9FE;color:#5B21B6">🔗 Multi Leg</span>'; }
+    const checked = checkedIds.has(r.id) ? 'checked' : '';
+    const kartonInfo = r.total ? (' · '+r.total+' krt') : (r.kubik?(' · '+r.kubik+' m³'):'');
+    const jamInfo = tampilJam(r.jam) ? (', '+tampilJam(r.jam)) : '';
+    const metaTgl = (r.tgl?tampilTgl(r.tgl):tampilTgl(r.tglText));
+    const belumAdaTgl = r.isDraft && !r.tgl && !r.tglText;
+    const tglInputHTML = r.isDraft
+      ? `<input type="date" value="${tglKeInputDate(r.tgl||r.tglText)}" onchange="setField(${r.id},'tgl',this.value)" style="border:1px solid ${belumAdaTgl?'#DC2626':'var(--border)'};border-radius:6px;padding:3px 6px;font-size:11.5px;font-family:inherit;${belumAdaTgl?'background:#FEF2F2':''}">`
+      : metaTgl;
+
+    // ==== BAGIAN RATE ====
+    let rateHtml='';
+    if(r.multiLeg){
+      // LEG 1 (darat → pelabuhan) + LEG 2 (laut → tujuan akhir)
+      const rank1=rankingLeg(r,1), rank2=rankingLeg(r,2);
+      const opsiPel=PELABUHAN_LIST.map(p=>`<option value="${p}" ${r.pelabuhan===p?'selected':''}>${p}</option>`).join('');
+      rateHtml=`
+      <div style="background:#FFF8F0;border:1px solid #FCD9A8;border-radius:8px;padding:9px;margin-bottom:7px">
+        <div style="display:flex;align-items:center;gap:5px;margin-bottom:7px;flex-wrap:wrap">
+          <span style="font-size:8px;background:#B45309;color:#fff;padding:2px 7px;border-radius:9px;font-weight:800">LEG 1 · DARAT</span>
+          <select onchange="setPelabuhan(${r.id},this.value)" style="font-size:10px;padding:3px 6px;border:1px solid var(--border);border-radius:5px">${opsiPel}</select>
+        </div>
+        <div class="oc-row2" style="margin-bottom:7px">
+          <div><div class="oc-lbl">Truck darat</div><select class="truck-sel" onchange="setTipeLeg(${r.id},1,this.value)">${truckOptions(r.tipe)}</select></div>
+        </div>
+        ${r.tipe ? gridRate(r,1,rank1,r.pilihEksp) : '<div class="oc-na">Pilih truck darat dulu</div>'}
+      </div>
+      <div style="background:#F0F9FF;border:1px solid #BAE6FD;border-radius:8px;padding:9px;margin-bottom:7px">
+        <div style="display:flex;align-items:center;gap:5px;margin-bottom:7px">
+          <span style="font-size:8px;background:#0EA5E9;color:#fff;padding:2px 7px;border-radius:9px;font-weight:800">LEG 2 · LAUT</span>
+          <span style="font-size:9px;color:var(--text3)">→ ${r.tuj||'-'}</span>
+        </div>
+        <div class="oc-row2" style="margin-bottom:7px">
+          <div><div class="oc-lbl">Tipe LEG 2</div><select class="truck-sel" onchange="setTipeLeg(${r.id},2,this.value)">${truckOptions(r.tipe2)}</select></div>
+        </div>
+        ${r.tipe2 ? gridRate(r,2,rank2,r.eksp2) : '<div class="oc-na">Pilih tipe LEG 2 dulu</div>'}
+      </div>
+      <div style="background:#EDE9FE;border:1px solid #DDD6FE;border-radius:7px;padding:8px 10px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:10.5px;color:#5B21B6;font-weight:700">Total (darat + laut)</span>
+        <span style="font-size:13px;font-weight:800;color:#5B21B6">${rupiah(totalMultiLeg(r))}</span>
+      </div>`;
+    }else{
+      const rank = (r.tuj && r.tipe && hargaData.length) ? getRanking(r.tuj, r.tipe) : [];
+      if(!r.tipe) rateHtml='<div class="oc-na">Pilih truck dulu untuk lihat rate</div>';
+      else rateHtml=gridRate(r,1,rank,r.pilihEksp);
+    }
+
+    // panel multidrop (baris pertama grup)
+    let dropPanel='';
+    if(r.dropGroup){
+      const grpRows=rows.filter(x=>x.dropGroup===r.dropGroup);
+      const isFirst=grpRows[0].id===r.id;
+      badge+=' <span class="oc-badge st-drop">🚚 MD'+r.dropGroup+'</span>';
+      if(isFirst){
+        const rateTertinggi=Math.max(...grpRows.map(x=>x.pilihHarga||0));
+        const total=rateTertinggi+(r.biayaDrop||0);
+        dropPanel=`<div class="oc-drop-panel">
+          <button onclick="pisahMultidrop(${r.dropGroup})" style="background:#FEE2E2;border:1px solid #FCA5A5;border-radius:5px;font-size:10px;padding:3px 8px;cursor:pointer">✕ Pisah Multidrop</button>
+          <div style="margin-top:6px">Biaya tambahan: <input type="number" value="${r.biayaDrop||0}" oninput="setBiayaDrop(${r.dropGroup},this.value)" style="width:110px;padding:5px 7px;border:1px solid var(--border);border-radius:5px;font-size:11px"></div>
+          <b id="drop-total-${r.dropGroup}" style="color:#0C447C;display:block;margin-top:4px">Total: ${rupiah(total)}</b>
+          <span style="color:var(--text3);font-size:10px">terjauh ${rupiah(rateTertinggi)} + drop</span>
+        </div>`;
+      }
+    }
+
+    html+=`<div class="${cls}">
+      <div class="oc-head">
+        <input type="checkbox" class="oc-chk" ${checked} onchange="toggleCheck(${r.id},this.checked)">
+        <div style="flex:1;min-width:0">
+          <div class="oc-tuj">${r.tuj||'<span class="tbl-na">(belum diisi)</span>'}</div>
+          <div class="oc-meta">🗓️ ${tglInputHTML}${belumAdaTgl?' <span style="color:#DC2626;font-weight:700">⚠️ isi tanggal</span>':''}${jamInfo}${kartonInfo}</div>
+        </div>
+        ${badge}
+        <button class="btn-hapus" onclick="delRow(${r.id})" style="flex-shrink:0">🗑️</button>
+      </div>
+      <div class="oc-row2" style="${r.multiLeg?'display:none':''}">
+        <div><div class="oc-lbl">Truck</div><select class="truck-sel" onchange="setTipe(${r.id},this.value)">${truckOptions(r.tipe)}</select></div>
+        <div><div class="oc-lbl">Jam Muat</div><select class="jam-sel" onchange="setField(${r.id},'jam',this.value)">${jamOptions(r.jam)}</select></div>
+      </div>
+      ${r.multiLeg?`<div class="oc-row2"><div><div class="oc-lbl">Jam Muat</div><select class="jam-sel" onchange="setField(${r.id},'jam',this.value)">${jamOptions(r.jam)}</select></div></div>`:''}
+      <label style="display:flex;align-items:center;gap:7px;background:${r.multiLeg?'#F5F3FF':'#FAFBFC'};border:1px solid ${r.multiLeg?'#DDD6FE':'var(--border)'};border-radius:7px;padding:7px 9px;margin-bottom:10px;cursor:pointer">
+        <input type="checkbox" ${r.multiLeg?'checked':''} onchange="toggleMultiLeg(${r.id},this.checked)" style="width:15px;height:15px">
+        <span style="font-size:11px;font-weight:700;color:${r.multiLeg?'#5B21B6':'var(--text3)'}">🔗 Multi Leg (darat + laut)</span>
+      </label>
+      ${r.multiLeg ? rateHtml : (`<div class="oc-rate-lbl">Pilih ekspedisi · urut termurah:</div>${rateHtml}`)}
+      ${dropPanel}
+    </div>`;
+  });
+  wrap.innerHTML=html;
+}
+function toggleRate(id){ expandRate[id]=!expandRate[id]; renderCards(); }
+
+
+// Tabel perbandingan rate dengan Rank 1-4 + tombol klik
+function renderTable(){
+  const tbl=document.getElementById('rate-tbl');
+  if(!tbl) return;
+  // Header
+  let head='<thead><tr>'+
+    '<th>✓</th><th>No</th><th>Hapus</th><th>Status</th><th>Tanggal</th><th>Jam Muat</th><th>Destination</th><th>Kubikasi</th><th>🔗 Leg</th><th>Truck</th>'+
+    '<th class="grp1">EXP</th><th class="grp1">Rate</th><th>Rank</th>';
+  for(let k=1;k<=4;k++){
+    head+=`<th class="grp2">Rank ${k}</th><th class="grp2">Rate</th><th class="grp2"></th>`;
+  }
+  head+='</tr></thead>';
+
+  let body='<tbody>';
+  rowsTampil().forEach((r,i)=>{
+    const rank = (r.tuj && r.tipe && hargaData.length) ? getRanking(r.tuj, r.tipe) : [];
+    const expCell = r.pilihEksp
+      ? `<td class="cell-exp">${r.pilihEksp}</td><td class="cell-rate">${rupiah(r.pilihHarga)}</td>`
+      : `<td class="cell-exp empty">— pilih —</td><td class="cell-rate empty">—</td>`;
+    let rankCells='';
+    for(let k=0;k<4;k++){
+      const h=rank[k];
+      if(h){
+        const on = norm(r.pilihEksp)===norm(h.expedition);
+        const eksp=(h.expedition||'-').replace(/"/g,'&quot;');
+        rankCells+=`<td class="rank-eksp">${h.expedition||'-'}</td>`+
+                   `<td class="rank-rate">${rupiah(h.price)}</td>`+
+                   `<td><button class="btn-klik ${on?'on':''}" onclick="pilihEksp(${r.id},&quot;${eksp}&quot;,${h.price})">${on?'✓':'klik'}</button></td>`;
+      }else{
+        rankCells+=`<td class="tbl-na">-</td><td class="tbl-na">-</td><td></td>`;
+      }
+    }
+    const dest = r.tuj ? r.tuj : '<span class="tbl-na">(belum diisi)</span>';
+    // status badge + warna baris
+    const st = r.status || 'Baru';
+    let badge, rowClass;
+    if(st==='Belum'){ badge='<span class="st-badge st-belum">⏳ Belum</span>'; rowClass='row-belum'; }
+    else if(st==='Tidak'){ badge='<span class="st-badge st-tidak">❌ Tidak</span>'; rowClass='row-tidak'; }
+    else { badge='<span class="st-badge st-baru">🆕 Baru</span>'; rowClass=''; }
+    // badge multi-drop
+    let dropBadge='';
+    if(r.dropGroup){
+      rowClass='row-drop';
+      // cek apakah baris pertama dari grup ini
+      const grpRows=rows.filter(x=>x.dropGroup===r.dropGroup);
+      const isFirst = grpRows[0].id===r.id;
+      const rateTertinggi = Math.max(...grpRows.map(x=>x.pilihHarga||0));
+      const total = rateTertinggi + (r.biayaDrop||0);
+      dropBadge=' <span class="st-badge st-drop">🚚 Multidrop '+r.dropGroup+'</span>';
+      if(isFirst){
+        dropBadge += `<div style="margin-top:6px;font-size:11px;line-height:1.5">
+          <button onclick="pisahMultidrop(${r.dropGroup})" style="background:#FEE2E2;border:1px solid #FCA5A5;border-radius:5px;font-size:10px;padding:2px 6px;cursor:pointer;margin-bottom:4px">✕ Pisah</button><br>
+          Biaya tambahan:<br>
+          <input type="number" value="${r.biayaDrop||0}" oninput="setBiayaDrop(${r.dropGroup},this.value)" style="width:110px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;font-size:11px" placeholder="Rp">
+          <br><b id="drop-total-${r.dropGroup}" style="color:#0C447C">Total: ${rupiah(total)}</b><br>
+          <span style="color:var(--text3);font-size:10px">terjauh ${rupiah(rateTertinggi)} + drop</span>
+        </div>`;
+      }
+    }
+    const checked = checkedIds.has(r.id) ? 'checked' : '';
+    if(r.multiLeg) rowClass += ' row-mleg';
+    // kolom centang multi leg
+    const legCell = `<td style="text-align:center">
+      <input type="checkbox" ${r.multiLeg?'checked':''} onchange="toggleMultiLeg(${r.id},this.checked)" title="Multi Leg (darat+laut)">
+      ${r.multiLeg?('<div style="font-size:8px;color:#5B21B6;font-weight:800;margin-top:2px">DARAT</div>'):''}
+    </td>`;
+
+    if(r.multiLeg){
+      // ===== BARIS 1: LEG DARAT (ke pelabuhan) =====
+      const rank1 = rankingLeg(r,1);
+      const opsiPel = PELABUHAN_LIST.map(p=>`<option value="${p}" ${r.pelabuhan===p?'selected':''}>${p}</option>`).join('');
+      const exp1 = r.pilihEksp
+        ? `<td class="cell-exp">${r.pilihEksp}</td><td class="cell-rate">${rupiah(r.pilihHarga)}</td>`
+        : `<td class="cell-exp empty">— pilih —</td><td class="cell-rate empty">—</td>`;
+      let rc1='';
+      for(let k=0;k<4;k++){
+        const h=rank1[k];
+        if(h){
+          const on = norm(r.pilihEksp)===norm(h.expedition);
+          const e=(h.expedition||'-').replace(/"/g,'&quot;');
+          rc1+=`<td class="rank-eksp">${h.expedition||'-'}</td><td class="rank-rate">${rupiah(h.price)}</td>`+
+               `<td><button class="btn-klik ${on?'on':''}" onclick="pilihEkspLeg(${r.id},1,&quot;${e}&quot;,${h.price})">${on?'✓':'klik'}</button></td>`;
+        }else rc1+=`<td class="tbl-na">-</td><td class="tbl-na">-</td><td></td>`;
+      }
+      body+=`<tr class="${rowClass}" style="background:#FFF8F0">
+        <td><input type="checkbox" class="row-chk" ${checked} onchange="toggleCheck(${r.id},this.checked)"></td>
+        <td class="tbl-rownum">${i+1}</td>
+        <td><button class="btn-hapus" onclick="delRow(${r.id})" title="Hapus">🗑️</button></td>
+        <td>${badge}${dropBadge}</td>
+        <td>${r.isDraft?('<input type="date" value="'+tglKeInputDate(r.tgl||r.tglText)+'" onchange="setField('+r.id+',\'tgl\',this.value)" style="border:1px solid '+((!r.tgl&&!r.tglText)?"#DC2626":"var(--border)")+';border-radius:6px;padding:3px 5px;font-size:11.5px;font-family:inherit;'+((!r.tgl&&!r.tglText)?"background:#FEF2F2":"")+'">'):(r.tgl?tampilTgl(r.tgl):tampilTgl(r.tglText))}</td>
+        <td><select class="jam-sel" onchange="setField(${r.id},'jam',this.value)">${jamOptions(r.jam)}</select></td>
+        <td class="cell-dest">${dest}<br><span style="font-size:9px;color:#B45309;font-weight:800">LEG 1 → </span><select onchange="setPelabuhan(${r.id},this.value)" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:4px">${opsiPel}</select></td>
+        <td>${r.kubik||'<span class="tbl-na">-</span>'}</td>
+        ${legCell}
+        <td><select class="truck-sel" onchange="setTipeLeg(${r.id},1,this.value)">${truckOptions(r.tipe)}</select></td>
+        ${exp1}
+        <td class="tbl-rownum">${rank1.length||'-'}</td>
+        ${rc1}
+      </tr>`;
+      // ===== BARIS 2: LEG LAUT (ke tujuan akhir) =====
+      const rank2 = rankingLeg(r,2);
+      const exp2 = r.eksp2
+        ? `<td class="cell-exp">${r.eksp2}</td><td class="cell-rate">${rupiah(r.harga2)}</td>`
+        : `<td class="cell-exp empty">— pilih —</td><td class="cell-rate empty">—</td>`;
+      let rc2='';
+      for(let k=0;k<4;k++){
+        const h=rank2[k];
+        if(h){
+          const on = norm(r.eksp2)===norm(h.expedition);
+          const e=(h.expedition||'-').replace(/"/g,'&quot;');
+          rc2+=`<td class="rank-eksp">${h.expedition||'-'}</td><td class="rank-rate">${rupiah(h.price)}</td>`+
+               `<td><button class="btn-klik ${on?'on':''}" onclick="pilihEkspLeg(${r.id},2,&quot;${e}&quot;,${h.price})">${on?'✓':'klik'}</button></td>`;
+        }else rc2+=`<td class="tbl-na">-</td><td class="tbl-na">-</td><td></td>`;
+      }
+      body+=`<tr class="${rowClass}" style="background:#F0F9FF">
+        <td></td><td></td><td></td>
+        <td><span style="font-size:9px;background:#EDE9FE;color:#5B21B6;padding:2px 6px;border-radius:9px;font-weight:800">TOTAL ${rupiah(totalMultiLeg(r))}</span></td>
+        <td></td><td></td>
+        <td class="cell-dest"><span style="font-size:9px;color:#0EA5E9;font-weight:800">LEG 2 → ${r.tuj||'-'}</span></td>
+        <td></td>
+        <td style="text-align:center"><div style="font-size:8px;color:#0EA5E9;font-weight:800">LAUT</div></td>
+        <td><select class="truck-sel" onchange="setTipeLeg(${r.id},2,this.value)">${truckOptions(r.tipe2)}</select></td>
+        ${exp2}
+        <td class="tbl-rownum">${rank2.length||'-'}</td>
+        ${rc2}
+      </tr>`;
+      return;
+    }
+
+    body+=`<tr class="${rowClass}">
+      <td><input type="checkbox" class="row-chk" ${checked} onchange="toggleCheck(${r.id},this.checked)"></td>
+      <td class="tbl-rownum">${i+1}</td>
+      <td><button class="btn-hapus" onclick="delRow(${r.id})" title="Hapus">🗑️</button></td>
+      <td>${badge}${dropBadge}</td>
+      <td>${r.isDraft?('<input type="date" value="'+tglKeInputDate(r.tgl||r.tglText)+'" onchange="setField('+r.id+',\'tgl\',this.value)" style="border:1px solid '+((!r.tgl&&!r.tglText)?"#DC2626":"var(--border)")+';border-radius:6px;padding:3px 5px;font-size:11.5px;font-family:inherit;'+((!r.tgl&&!r.tglText)?"background:#FEF2F2":"")+'">'):(r.tgl?tampilTgl(r.tgl):tampilTgl(r.tglText))}</td>
+      <td><select class="jam-sel" onchange="setField(${r.id},'jam',this.value)">${jamOptions(r.jam)}</select></td>
+      <td class="cell-dest">${dest}</td>
+      <td>${r.kubik||'<span class="tbl-na">-</span>'}</td>
+      ${legCell}
+      <td><select class="truck-sel" onchange="setTipe(${r.id},this.value)">${truckOptions(r.tipe)}</select></td>
+      ${expCell}
+      <td class="tbl-rownum">${rank.length||'-'}</td>
+      ${rankCells}
+    </tr>`;
+  });
+  body+='</tbody>';
+  tbl.innerHTML=head+body;
+  // pesan kosong (jangan set display tbl-wrap inline — biar media query HP/laptop yang atur)
+  let empty=document.getElementById('tbl-empty');
+  if(!rows.length){
+    if(!empty){
+      empty=document.createElement('div');
+      empty.id='tbl-empty';
+      empty.style.cssText='padding:24px;text-align:center;color:var(--text3);font-size:13px';
+      empty.innerHTML='Belum ada data. Upload file atau paste di atas untuk mulai.';
+      const scroll=tbl.parentNode;
+      scroll.parentNode.insertBefore(empty, scroll.nextSibling);
+    }
+    empty.style.display='block';
+  }else{
+    if(empty) empty.style.display='none';
+  }
+}
+
+function setField(id,key,val){ const r=rows.find(x=>x.id===id); if(r){ r[key]=val; if(r.isDraft) updateDraftField(r,key); } if(key==='tgl') renderRows(); }
+function setTipe(id,val){ const r=rows.find(x=>x.id===id); if(r){ r.tipe=val; r.pilihEksp=''; r.pilihHarga=0; if(r.isDraft){ updateDraftField(r,'tipe'); updateDraftField(r,'pilihEksp'); updateDraftField(r,'pilihHarga'); } } renderRows(); }
+
+// autocomplete
+function onTuj(id){
+  const r=rows.find(x=>x.id===id); const inp=document.getElementById('tuj-'+id);
+  if(r){ r.tuj=inp.value; r.pilihEksp=''; r.pilihHarga=0; }
+  const box=document.getElementById('sugg-'+id);
+  const t=norm(inp.value);
+  if(!t||!distData.length){ box.innerHTML=''; renderRows(); return; }
+  const hits=distData.filter(d=>norm(d.kota).includes(t)||norm(d.dist).includes(t)).slice(0,6);
+  box.innerHTML = hits.length ? '<div class="dist-sugg">'+hits.map(d=>{
+    const v=d.dist.replace(/'/g,'&#39;').replace(/"/g,'&quot;');
+    return `<div class="dist-item" onmousedown="pickDist(${id},&quot;${v}&quot;)"><b>${d.dist}</b></div>`;
+  }).join('')+'</div>' : '';
+  renderRows();
+}
+function pickDist(id,val){
+  const r=rows.find(x=>x.id===id); if(r){ r.tuj=val; r.pilihEksp=''; r.pilihHarga=0; }
+  const inp=document.getElementById('tuj-'+id); if(inp) inp.value=val;
+  closeSugg(id); renderRows();
+}
+function closeSugg(id){ setTimeout(()=>{ const b=document.getElementById('sugg-'+id); if(b) b.innerHTML=''; },150); }
+
+// render ulang tabel saat data harga siap
+function renderRanks(){ renderRows(); }
+function pilihEksp(id,eksp,price){
+  const r=rows.find(x=>x.id===id); if(!r) return;
+  const batal = norm(r.pilihEksp)===norm(eksp);
+  // multidrop: semua baris grup ikut ekspedisi yang sama
+  const target = r.dropGroup ? rows.filter(x=>x.dropGroup===r.dropGroup) : [r];
+  target.forEach(x=>{
+    if(batal){ x.pilihEksp=''; x.pilihHarga=0; }
+    else { x.pilihEksp=eksp; x.pilihHarga=price; }
+    if(x.isDraft){ updateDraftField(x,'pilihEksp'); updateDraftField(x,'pilihHarga'); }
+  });
+  hitungJamMuat(); // ekspedisi berubah → jam bisa berubah (mis. sekuen khusus)
+}
+
+// ============ TAHAP 2: GROUP ============
+function goGroup(){
+  // baris dianggap siap kalau leg-1 (atau leg-2 utk multileg) sudah dipilih
+  const dipilih = rows.filter(r=> r.pilihEksp || (r.multiLeg && r.eksp2));
+  if(!dipilih.length){ toast('Pilih ekspedisi minimal 1 tujuan dulu','err'); return; }
+  for(const r of dipilih){
+    if(!r.jam){ toast('Isi Jam Muat untuk: '+r.tuj,'err'); return; }
+    if(r.multiLeg && (!r.pilihEksp || !r.eksp2)){
+      toast('Multi Leg: pilih ekspedisi DARAT & LAUT untuk '+r.tuj,'err'); return;
+    }
+  }
+  // kumpulkan ekspedisi unik — multi leg masuk 2 grup (darat & laut)
+  const grup={};
+  dipilih.forEach(r=>{
+    if(r.pilihEksp) (grup[r.pilihEksp]=grup[r.pilihEksp]||[]).push(r);
+    if(r.multiLeg && r.eksp2) (grup[r.eksp2]=grup[r.eksp2]||[]).push(r);
+  });
+  const bar=document.getElementById('grp-bar');
+  bar.innerHTML=Object.keys(grup).map(k=>
+    `<button class="grp-pill" onclick="pilihGrup(&quot;${k.replace(/"/g,'&quot;')}&quot;)">${k} <span class="cnt">${grup[k].length}</span></button>`
+  ).join('');
+  document.getElementById('stage-input').style.display='none';
+  document.getElementById('stage-group').style.display='block';
+  document.getElementById('btn-next').textContent='← Kembali Edit';
+  document.getElementById('btn-next').onclick=backInput;
+  groupSel=null;
+  document.getElementById('wa-card').style.display='none';
+  toast('Pilih ekspedisi di atas','ok');
+}
+function backInput(){
+  document.getElementById('stage-input').style.display='block';
+  document.getElementById('stage-group').style.display='none';
+  document.getElementById('btn-next').textContent='Lihat & Pilih Ekspedisi';
+  document.getElementById('btn-next').onclick=goGroup;
+  renderRows();
+}
+
+function pilihGrup(eksp){
+  groupSel=eksp;
+  document.querySelectorAll('.grp-pill').forEach(p=>{
+    p.classList.toggle('on', p.textContent.trim().startsWith(eksp));
+  });
+  buildPesan(eksp);
+}
+
+// No order: ORD-tanggal-acak
+function buatNoOrder(){
+  const d=new Date();
+  const ymd=d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
+  return 'ORD-'+ymd+'-'+Math.floor(100+Math.random()*900);
+}
+
+let currentBatch=null;
+function buildPesan(eksp){
+  // ambil order untuk ekspedisi ini: sbg leg darat ATAU leg laut
+  const items=rows.filter(r=> r.pilihEksp===eksp || (r.multiLeg && r.eksp2===eksp));
+  // cegah kirim kalau ada tujuan yg tanggalnya belum diisi (No Order masih PENDING)
+  const belumIsiTgl = items.filter(r=> r.draft_id && r.draft_id.indexOf('PENDING')===0);
+  if(belumIsiTgl.length){
+    toast('Isi tanggal muat dulu untuk: '+belumIsiTgl.map(r=>r.tuj).join(', '),'err');
+    currentBatch=null;
+    return;
+  }
+  const tglShow=r=> r.tgl?tampilTgl(r.tgl):tampilTgl(r.tglText);
+  let lines='';
+  let adaNonRank1=false;
+  let catatanApprove='';
+  const noOrderSet=[]; // kumpulan No Order (draft_id) untuk link
+  const pushNo=id=>{ if(id && noOrderSet.indexOf(id)<0) noOrderSet.push(id); };
+  const itemNoMap={}; // item.id -> No Order yg dipakai utk simpan (akurat utk multidrop juga)
+
+  // pisahkan: multi-drop grup vs item tunggal
+  const grupMap={}; const single=[];
+  items.forEach(r=>{
+    if(r.dropGroup){ (grupMap[r.dropGroup]=grupMap[r.dropGroup]||[]).push(r); }
+    else single.push(r);
+  });
+
+  let no=0;
+  // item tunggal — tiap tujuan No Order sendiri (dari draft_id)
+  single.forEach(r=>{
+    no++;
+    const noItem = r.draft_id || r.noOrder || buatNoOrder();
+    pushNo(noItem);
+    itemNoMap[r.id] = noItem;
+    // MULTI LEG: tampilkan sesuai leg untuk ekspedisi ini, TANPA jam muat
+    if(r.multiLeg){
+      const legDarat = (r.pilihEksp===eksp);
+      if(legDarat){
+        lines += no+'. 📦 '+noItem+'\n   🎯 '+(r.tuj)+'\n'+
+                 '   🔗 LEG 1 (DARAT) → '+(r.pelabuhan||'-')+'\n'+
+                 '   🗓️ Muat: '+tglShow(r)+', jam '+(tampilJam(r.jam)||'-')+'\n'+
+                 '   🚛 '+(r.tipe||'-')+((r.pilihHarga>0)?(' — '+rupiah(r.pilihHarga)):'')+'\n';
+      }else{
+        lines += no+'. 📦 '+noItem+'\n   🎯 '+(r.tuj)+'\n'+
+                 '   🔗 LEG 2 (LAUT) dari '+(r.pelabuhan||'-')+'\n'+
+                 '   🚢 '+(r.tipe2||'-')+((r.harga2>0)?(' — '+rupiah(r.harga2)):'')+'\n';
+      }
+      return;
+    }
+    lines += no+'. 📦 '+noItem+'\n   🎯 '+(r.tuj)+'\n   🗓️ Muat: '+tglShow(r)+', jam '+(tampilJam(r.jam)||'-')+'\n   🚛 '+r.tipe+(isKontainer(r.tipe)?(' — '+rupiah(r.pilihHarga)):'')+'\n';
+    const rank = (r.tuj && r.tipe && hargaData.length) ? getRanking(r.tuj, r.tipe) : [];
+    if(rank.length){
+      const posisi = rank.findIndex(h=>norm(h.expedition)===norm(eksp));
+      if(posisi>0){
+        adaNonRank1=true;
+        const r1 = rank[0];
+        const selisih = (r.pilihHarga||0) - (r1.price||0);
+        catatanApprove += '• '+r.tuj+' ('+r.tipe+')\n'+
+          '   Termurah: '+(r1.expedition||'-')+' — '+rupiah(r1.price)+'\n'+
+          '   Dipilih: '+eksp+' — '+rupiah(r.pilihHarga)+
+          (selisih>0?(' (selisih +'+rupiah(selisih)+')'):'')+'\n';
+      }
+    }
+  });
+
+  // grup multi-drop: 1 No Order (dari tujuan pertama grup)
+  Object.keys(grupMap).forEach(gid=>{
+    no++;
+    const g=grupMap[gid];
+    const noGrup = g[0].draft_id || g[0].noOrder || buatNoOrder();
+    pushNo(noGrup);
+    g.forEach(x=>{ itemNoMap[x.id] = noGrup; }); // semua tujuan dlm grup pakai No Order yg sama
+    const rateTertinggi = Math.max(...g.map(x=>x.pilihHarga||0));
+    const biayaDrop = g[0].biayaDrop || 0;
+    const totalDrop = rateTertinggi + biayaDrop;
+    const tujList = g.map(x=>x.tuj).join(' → ');
+    const kontainer = isKontainer(g[0].tipe);
+    lines += no+'. 📦 '+noGrup+'\n   🚚 *MULTI-DROP* ('+g.length+' tujuan)\n'+
+             '   🗓️ Muat: '+tglShow(g[0])+', jam '+(tampilJam(g[0].jam)||'-')+'\n'+
+             '   🚛 '+g[0].tipe+'\n'+
+             '   Rute: '+tujList+'\n'+
+             (kontainer
+               ? ('   Rate tertinggi: '+rupiah(rateTertinggi)+'\n'+
+                  '   Biaya drop: '+rupiah(biayaDrop)+'\n'+
+                  '   *Total: '+rupiah(totalDrop)+'*\n')
+               : '');
+
+    // cek non-rank1 untuk multidrop → bandingkan TOTAL (tertinggi + biaya drop)
+    let adaNonRank1Drop=false;
+    let rincianDrop='';
+    let totalTermurah=0;
+    g.forEach(r=>{
+      const rank = (r.tuj && r.tipe && hargaData.length) ? getRanking(r.tuj, r.tipe) : [];
+      if(rank.length){
+        const r1 = rank[0];
+        if(r1 && (r1.price||0) > totalTermurah) totalTermurah = r1.price||0;
+        const posisi = rank.findIndex(h=>norm(h.expedition)===norm(eksp));
+        if(posisi>0){
+          adaNonRank1Drop=true;
+          rincianDrop += '   - '+r.tuj+': termurah '+(r1.expedition||'-')+' '+rupiah(r1.price)+'\n';
+        }
+      }
+    });
+    if(adaNonRank1Drop){
+      adaNonRank1=true;
+      const totalTermurahDrop = totalTermurah + biayaDrop;
+      const selisih = totalDrop - totalTermurahDrop;
+      catatanApprove += '• [MULTI-DROP] '+tujList+' ('+g[0].tipe+')\n'+
+        rincianDrop+
+        '   Total termurah: '+rupiah(totalTermurahDrop)+'\n'+
+        '   Total dipilih ('+eksp+'): '+rupiah(totalDrop)+'\n'+
+        '   (tertinggi '+rupiah(rateTertinggi)+' + drop '+rupiah(biayaDrop)+')'+
+        (selisih>0?('\n   Selisih: +'+rupiah(selisih)):'')+'\n';
+    }
+  });
+
+  const noOrdGabung = noOrderSet.join(',');
+  const link = KONFIRM_URL+'?order='+encodeURIComponent(noOrdGabung)+
+    '&eksp='+encodeURIComponent(eksp)+
+    '&hp_eksp='+encodeURIComponent(kontakEksp(eksp))+
+    '&admins='+encodeURIComponent(adminsStr());
+
+  // PESAN 1: ke ekspedisi (tanpa approve)
+  let msg='*ORDER ARMADA - PT. UNIFAM*\nEksp: *'+eksp+'*\n\n'+lines;
+  msg += '\nKonfirmasi: '+link;
+
+  // PESAN 2: approve ke management (hanya jika ada non-rank1)
+  let msgApprove='';
+  if(adaNonRank1){
+    // hitung total biaya order ini
+    let totalBiaya=0;
+    items.forEach(r=>{ totalBiaya += (r.pilihHarga||0); });
+    // tambah biaya drop multi-drop (sekali per grup)
+    const grupSeen={};
+    items.forEach(r=>{ if(r.dropGroup && !grupSeen[r.dropGroup]){ grupSeen[r.dropGroup]=1; totalBiaya += (r.biayaDrop||0); } });
+
+    msgApprove='*PERMINTAAN APPROVAL - PT. UNIFAM*\nNo Order: *'+noOrdGabung+'*\nEkspedisi: *'+eksp+'*\n\n'+
+      'Mohon persetujuan. Order berikut menggunakan ekspedisi *selain rate termurah* karena armada termurah sedang tidak tersedia:\n\n'+
+      catatanApprove+
+      '\n──────────────\n'+
+      '*Total Biaya Order: '+rupiah(totalBiaya)+'*\n\n'+
+      'Mohon arahan untuk approve. Terima kasih. 🙏';
+  }
+
+  document.getElementById('wa-eksp').textContent=eksp;
+  document.getElementById('wa-bubble').textContent=msg;
+  document.getElementById('wa-card').style.display='block';
+
+  // tombol approve terpisah (muncul hanya jika ada non-rank1)
+  const apvBox=document.getElementById('approve-box');
+  if(apvBox){
+    if(msgApprove){
+      apvBox.style.display='block';
+      document.getElementById('approve-bubble').textContent=msgApprove;
+    }else{
+      apvBox.style.display='none';
+    }
+  }
+
+  // siapkan data simpan (orderRows untuk GSheet)
+  // MULTI-DROP: hanya baris pertama grup yang bawa harga TOTAL (tertinggi + biaya drop)
+  const dropSeen={};
+  const orderRows=items.map(r=>{
+    let hargaSimpan = r.pilihHarga||0;
+    if(r.dropGroup){
+      if(dropSeen[r.dropGroup]){
+        hargaSimpan = 0; // tujuan berikutnya dalam grup: tanpa harga
+      }else{
+        dropSeen[r.dropGroup]=true;
+        const g = items.filter(x=>x.dropGroup===r.dropGroup);
+        const tertinggi = Math.max(...g.map(x=>x.pilihHarga||0));
+        hargaSimpan = tertinggi + (g[0].biayaDrop||0); // total multidrop
+      }
+    }
+    // multi leg: harga = darat + laut (di baris yang sama)
+    if(r.multiLeg) hargaSimpan = (r.pilihHarga||0) + (r.harga2||0);
+    return {
+      no_order: r.draft_id || r.noOrder || '',
+      tgl: tglShow(r), jam:r.jam||'', tuj:r.tuj, tipe:r.tipe, kode:eksp,
+      kubik: r.kubik||'', harga: hargaSimpan,
+      sales: r.sales||'', total: r.total||''
+    };
+  });
+  currentBatch={ noOrd: noOrdGabung, eksp, msg, msgApprove, orderRows, items, itemNoMap };
+}
+
+// kirim WA approve ke grup management (kontak dipilih manual)
+function kirimApprove(){
+  if(!currentBatch || !currentBatch.msgApprove){ toast('Tidak ada yang perlu di-approve','err'); return; }
+  const waUrl = 'https://wa.me/?text='+encodeURIComponent(currentBatch.msgApprove);
+  window.open(waUrl,'_blank');
+}
+function copyApprove(){
+  if(!currentBatch || !currentBatch.msgApprove) return;
+  navigator.clipboard.writeText(currentBatch.msgApprove).then(()=>toast('Pesan approve disalin','ok')).catch(()=>toast('Gagal menyalin','err'));
+}
+
+function copyPesan(){
+  const msg=document.getElementById('wa-bubble').textContent;
+  navigator.clipboard.writeText(msg).then(()=>toast('Pesan disalin','ok')).catch(()=>toast('Gagal menyalin','err'));
+}
+
+// SIMPAN + KIRIM WA
+// Simpan order SATU PER SATU (berurutan), retry maks 2x kalau gagal.
+function simpanBerurutan(noKeys, idx, perNo, b, ts, gagal, selesai, percobaan){
+  percobaan = percobaan || 0;
+  if(idx >= noKeys.length){ selesai(); return; }
+  const no = noKeys[idx];
+  setHargaStatus('Menyimpan order '+(idx+1)+'/'+noKeys.length+'…');
+  gasJSONP('action=save&no_order='+encodeURIComponent(no)+
+    '&ekspedisi='+encodeURIComponent(b.eksp)+
+    '&orderRows='+encodeURIComponent(JSON.stringify(perNo[no]))+
+    '&catatan='+encodeURIComponent('via Planning')+
+    '&timestamp='+encodeURIComponent(ts),
+    function(resp){
+      if(resp && resp.status!=='error'){
+        simpanBerurutan(noKeys, idx+1, perNo, b, ts, gagal, selesai, 0);
+      }else if(percobaan < 2){
+        setTimeout(()=> simpanBerurutan(noKeys, idx, perNo, b, ts, gagal, selesai, percobaan+1), 1200);
+      }else{
+        gagal.push(no);
+        simpanBerurutan(noKeys, idx+1, perNo, b, ts, gagal, selesai, 0);
+      }
+    });
+}
+
+function kirimBatch(){
+  if(!currentBatch){ toast('Pilih ekspedisi dulu','err'); return; }
+  const b=currentBatch;
+
+  // Simpan JAM yang dipakai saat kirim ke kolom Jam di Planning Draft.
+  // hitungJamMuat() cuma hitung utk tampilan layar, tak pernah tersimpan ke
+  // sheet kecuali dropdown jam diubah manual — jadi harus dipaksa simpan di sini.
+  (b.items||[]).forEach(function(r){
+    if(r.isDraft && r.draft_id && r.jam){ updateDraftField(r,'jam'); }
+  });
+
+  // Pecah orderRows PER No Order → tiap request pendek (hindari URL kepanjangan)
+  const perNo={};
+  (b.orderRows||[]).forEach(function(r){
+    const no=r.no_order||b.noOrd||'';
+    (perNo[no]=perNo[no]||[]).push(r);
+  });
+  const noKeys=Object.keys(perNo);
+  const ts=new Date().toLocaleString('id-ID');
+
+  // buka jendela KOSONG dulu (sinkron, dipicu klik langsung → tak diblokir
+  // popup blocker), baru arahkan ke WA SETELAH simpan+hapus draft selesai.
+  // Ini penting terutama di HP: begitu pindah ke app WhatsApp, browser sering
+  // menghentikan sementara proses yang masih jalan di tab sebelumnya — kalau
+  // WA dibuka SEBELUM hapus draft selesai, proses hapusnya bisa terputus.
+  const hp = waNomorEksp(b.eksp);
+  const waUrl = 'https://wa.me/'+(hp||'')+'?text='+encodeURIComponent(b.msg);
+  lastWA = { url: waUrl, msg: b.msg, eksp: b.eksp, hp: hp };
+  const waWin = window.open('about:blank','_blank');
+
+  // kirim SATU PER SATU berurutan (BUKAN bersamaan — GAS bisa gagal diam-diam
+  // kalau dikirim serentak banyak sekaligus), dengan percobaan ulang kalau gagal.
+  const gagal=[];
+  setHargaStatus('Menyimpan order 1/'+noKeys.length+'…');
+  simpanBerurutan(noKeys, 0, perNo, b, ts, gagal, function(){
+    // hapus draft HANYA untuk No Order yang BERHASIL tersimpan.
+    // Yang gagal TETAP ada di planning (draft utuh) — tak perlu input ulang.
+    const gagalSet = new Set(gagal);
+    const noMap = b.itemNoMap || {};
+    const berhasilItems = (b.items||[]).filter(r=> !gagalSet.has(noMap[r.id]));
+    const gagalItems = (b.items||[]).filter(r=> gagalSet.has(noMap[r.id]));
+    const draftIds = berhasilItems.filter(r=>r.isDraft && r.draft_id).map(r=>r.draft_id);
+    const berhasilIds = new Set(berhasilItems.map(r=>r.id));
+
+    hapusDraftRetry(draftIds, function(){
+      rows = rows.filter(r=> !berhasilIds.has(r.id));
+      renderRows();
+
+      // BARU sekarang arahkan jendela ke WA — hapus draft sudah pasti selesai duluan
+      if(waWin && !waWin.closed) waWin.location.href = waUrl;
+      else window.open(waUrl,'_blank'); // fallback kalau jendela kosong tadi gagal dibuka
+      tampilKirimUlang();
+
+      if(gagal.length){
+        alert('⚠️ '+gagal.length+' dari '+noKeys.length+' order GAGAL tersimpan:\n\n'+gagal.join('\n')+
+              '\n\nOrder ini TETAP ADA di planning (tidak hilang) — tinggal pilih ekspedisi & kirim ulang, tak perlu input ulang.');
+        setHargaStatus('⚠️ '+gagal.length+' order gagal tersimpan — tetap ada di planning');
+        toast(gagal.length+' order gagal, cek planning','err');
+      }else{
+        setHargaStatus('✓ Semua order tersimpan');
+        toast('Order tersimpan & WA dibuka','ok');
+      }
+    });
+  });
+}
+// hapus draft di sheet dgn percobaan ulang (maks 2x) — jgn sampai draft
+// tertinggal walau order-nya sendiri sukses tersimpan
+function hapusDraftRetry(draftIds, selesai, percobaan){
+  percobaan = percobaan || 0;
+  if(!draftIds.length){ selesai(); return; }
+  gasJSONP('action=deldraft&draft_id='+encodeURIComponent(draftIds.join(',')), function(resp){
+    if(resp && resp.status!=='error'){ selesai(); }
+    else if(percobaan < 2){ setTimeout(()=> hapusDraftRetry(draftIds, selesai, percobaan+1), 1200); }
+    else { selesai(); } // sudah dicoba 3x, lanjut saja (jangan macet); draft bisa dibersihkan manual kalau perlu
+  });
+}
+
+// ==== KIRIM ULANG WA (kalau chat hilang karena sinyal) ====
+let lastWA = null;
+function tampilKirimUlang(){
+  if(!lastWA) return;
+  let box = document.getElementById('kirim-ulang-box');
+  if(!box){
+    box = document.createElement('div');
+    box.id = 'kirim-ulang-box';
+    box.style.cssText = 'position:fixed;bottom:16px;right:16px;z-index:1000;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.18);padding:12px 14px;max-width:290px';
+    document.body.appendChild(box);
+  }
+  box.innerHTML =
+    '<div style="font-size:12px;font-weight:800;color:var(--navy);margin-bottom:3px">Chat WA hilang / sinyal jelek?</div>'+
+    '<div style="font-size:11px;color:var(--text3);margin-bottom:8px">Order sudah tersimpan aman. Kirim ulang WA ke <b>'+String(lastWA.eksp||'').replace(/[<>&]/g,'')+'</b>:</div>'+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
+      '<button onclick="bukaUlangWA()" style="flex:1;background:#25D366;color:#fff;border:none;padding:8px 10px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">↻ Buka WA Lagi</button>'+
+      '<button onclick="salinPesanWA()" style="flex:1;background:#EEF2F7;color:var(--ink);border:1px solid var(--border);padding:8px 10px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">📋 Salin Pesan</button>'+
+    '</div>'+
+    '<button onclick="document.getElementById(\'kirim-ulang-box\').remove()" style="margin-top:7px;width:100%;background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer">tutup</button>';
+}
+function bukaUlangWA(){
+  if(lastWA && lastWA.url) window.open(lastWA.url,'_blank');
+}
+function salinPesanWA(){
+  if(!lastWA) return;
+  const t = lastWA.msg || '';
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(function(){ toast('Pesan disalin — tinggal paste di WA','ok'); },
+      function(){ salinManual(t); });
+  } else { salinManual(t); }
+}
+function salinManual(t){
+  const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta);
+  ta.select(); try{ document.execCommand('copy'); toast('Pesan disalin','ok'); }catch(e){ toast('Gagal salin','err'); }
+  document.body.removeChild(ta);
+}
+
+// Nomor HP ekspedisi: ambil dari hargaData kalau ada kolom hp; kalau tidak, kosong (user pilih kontak)
+function waNomorEksp(eksp){
+  return kontakEksp(eksp); // nomor utk membuka WA order ke ekspedisi
+}
+// cari kontak ekspedisi dari sheet harga, konversi 08xx → 628xx
+function kontakEksp(eksp){
+  if(!eksp) return '';
+  const hit = hargaData.find(h=> norm(h.expedition)===norm(eksp) && h.kontak);
+  if(!hit) return '';
+  let n = String(hit.kontak).replace(/[^\d]/g,''); // buang +, spasi, strip
+  if(!n) return '';
+  if(n.indexOf('62')===0) return n;
+  if(n.indexOf('0')===0)  return '62'+n.slice(1);
+  if(n.indexOf('8')===0)  return '62'+n;
+  return n;
+}
+
+// ============ LOAD ORDER BELUM SELESAI DARI SHEET ============
+// muat order final (sudah dikirim, belum dikonfirmasi) dari Order Armada
+function loadFromSheet(silent){
+  const cb='cbPlan'+Date.now();
+  window[cb]=function(resp){
+    delete window[cb]; if(sc.parentNode) sc.parentNode.removeChild(sc);
+    if(!resp || !resp.items){ renderRows(); return; }
+    const finalRows = resp.items.map(it=>({
+      id: ++rowSeq,
+      tuj: it.tuj||'',
+      tgl: '', tglText: it.tgl||'',
+      jam: it.jam||'',
+      kubik: it.kubik||'',
+      tipe: normalizeTipe(it.tipe||''),
+      status: (String(it.status||'').toLowerCase().indexOf('tidak')>=0)?'Tidak':'Belum',
+      pilihEksp: it.kode_eksp || it.ekspedisi || '',
+      pilihHarga: Number(it.harga)||0,
+      noOrder: it.no_order||'',
+      fromSheet:true, locked:true // order final: tidak diedit di sini
+    }));
+    // gabung: draft (atas) + final (bawah)
+    rows = rows.filter(r=>r.isDraft).concat(finalRows);
+    renderRows();
+    if(!silent) setLastSync();
+  };
+  const sc=document.createElement('script');
+  sc.src=GAS_URL+'?action=getplanning&callback='+cb;
+  sc.onerror=function(){ delete window[cb]; renderRows(); };
+  document.body.appendChild(sc);
+}
+
+// muat draft dari tab Planning Draft (multi-admin)
+function loadDraft(silent){
+  gasJSONP('action=getdraft&showAll=1', function(resp){
+    if(!resp || !resp.items){ if(!silent) loadFromSheet(true); return; }
+    // simpan info multidrop & pilihan lokal (by draft_id) sebelum reload
+    const prev={};
+    rows.filter(r=>r.isDraft && r.draft_id).forEach(r=>{
+      prev[r.draft_id]={ dropGroup:r.dropGroup, biayaDrop:r.biayaDrop, jam:r.jam, tipe:r.tipe, pilihEksp:r.pilihEksp, pilihHarga:r.pilihHarga };
+    });
+    let maxDrop=0;
+    // pisahkan: "Draft" tampil di tabel, "Dari Lelang" CUMA ikut hitung jam (tak tampil)
+    const draftRows = [];
+    lelangRows = [];
+    resp.items.forEach(it=>{
+      const p=prev[it.draft_id]||{};
+      if(p.dropGroup) maxDrop=Math.max(maxDrop, p.dropGroup);
+      const obj = {
+        id: ++rowSeq,
+        draft_id: it.draft_id,
+        tuj: it.tuj||'',
+        tgl: '', tglText: it.tgl||'',
+        jam: p.jam || it.jam || '',
+        sales: it.sales||'',
+        total: it.total||'',
+        kubik: it.kubik||'',
+        tipe: p.tipe || normalizeTipe(it.tipe||''),
+        status: 'Baru',
+        pilihEksp: p.pilihEksp || it.pilihEksp || '',
+        pilihHarga: p.pilihHarga || Number(it.pilihHarga)||0,
+        dropGroup: p.dropGroup || null,
+        biayaDrop: p.biayaDrop || 0,
+        isDraft:true
+      };
+      // order lelang yg SUDAH punya jam (pernah dihitung sebelumnya) dikunci —
+      // tak dihitung ulang, supaya jadwal yg sudah dikabari ke ekspedisi stabil.
+      if(String(it.dstatus||'').toLowerCase()==='dari lelang'){
+        obj._jamTerkunci = !!(it.jam);
+        lelangRows.push(obj);
+      } else draftRows.push(obj);
+    });
+    if(maxDrop>dropSeq) dropSeq=maxDrop; // jaga nomor grup tidak bentrok
+    // HANYA tampilkan draft (belum dikirim). Order yang sudah dikirim tidak
+    // ditampilkan lagi di planning agar tidak berpotensi double order.
+    // Order dari LELANG tak ditampilkan di tabel (ekspedisi sudah pasti dari
+    // sana), tapi TETAP ikut dihitung jam-nya (jalur sama) via hitungJamMuat.
+    rows = draftRows;
+    renderRows();
+    setLastSync();
+    hitungJamMuat(); // isi jam muat otomatis (gabung draft + lelang)
+  });
+}
+
+function setLastSync(){
+  const el=document.getElementById('last-sync');
+  if(el){ const d=new Date(); el.textContent='↻ '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0'); }
+}
+
+// ============ INIT ============
+document.addEventListener('DOMContentLoaded',()=>{
+  const url = new URL(window.location.href);
+  const csvOverride = url.searchParams.get('csv');
+  if(csvOverride){ HARGA_CSV = csvOverride; }
+  tarikSettingsServer();
+  loadHarga();
+  loadDist();
+  renderRows();
+  setTimeout(loadDraft, 1500); // muat draft + final dari Sheet
+  // auto-refresh tiap 30 detik
+  setInterval(()=>{ loadDraft(true); loadHarga(0); loadDist(); tarikSettingsServer(); }, 300000); // 5 menit
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) tarikSettingsServer(); });
+});
+</script>
+<a href="https://nanodoang.github.io/Logistic-Transportation/" style="position:fixed;bottom:16px;left:16px;background:#fff;color:var(--navy);border:1px solid var(--border2);padding:10px 16px;font-family:var(--disp);font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;text-decoration:none;box-shadow:0 2px 10px rgba(18,23,43,.15);z-index:999;display:flex;align-items:center;gap:6px">← Portal Utama</a>
+
+<div id="pengaturan-overlay" style="display:none;position:fixed;inset:0;background:rgba(18,23,43,.55);z-index:1000;padding:16px;overflow-y:auto">
+  <div style="max-width:560px;margin:20px auto;background:#fff;border-radius:var(--r)">
+    <div style="background:var(--navy);padding:15px 18px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-family:var(--disp);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.6)">Planning Armada</div>
+        <div style="font-family:var(--disp);font-size:17px;font-weight:700;color:#fff;text-transform:uppercase">Pengaturan Target Muat</div>
+      </div>
+      <button onclick="tutupPengaturan()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;padding:4px 8px">×</button>
+    </div>
+    <div style="padding:18px">
+      <div class="sec-lbl" style="margin-top:0">Mode Perhitungan</div>
+      <div style="display:flex;gap:9px;margin-bottom:16px">
+        <label style="flex:1;border:1.5px solid var(--border2);border-radius:var(--r);padding:12px;cursor:pointer" id="mode-karton-box">
+          <input type="radio" name="mode-muat" value="karton" onchange="pilihModeMuat('karton')" style="margin-right:7px">
+          <span style="font-family:var(--disp);font-size:13px;font-weight:600;text-transform:uppercase">Per Jam (Karton)</span>
+          <div style="font-family:var(--mono);font-size:10.5px;color:var(--text3);margin-top:4px">Target karton/jam, sama utk semua tipe</div>
+        </label>
+        <label style="flex:1;border:1.5px solid var(--border2);border-radius:var(--r);padding:12px;cursor:pointer" id="mode-tipe-box">
+          <input type="radio" name="mode-muat" value="tipe" onchange="pilihModeMuat('tipe')" style="margin-right:7px">
+          <span style="font-family:var(--disp);font-size:13px;font-weight:600;text-transform:uppercase">Per Tipe Mobil</span>
+          <div style="font-family:var(--mono);font-size:10.5px;color:var(--text3);margin-top:4px">Durasi tetap tiap tipe mobil</div>
+        </label>
+      </div>
+
+      <div id="panel-karton">
+        <div class="sec-lbl">Target Karton per Jam</div>
+        <div class="fld" style="max-width:200px">
+          <label>Karton / Jam</label>
+          <input type="number" id="input-kpj" min="1" step="1">
+        </div>
+      </div>
+
+      <div id="panel-tipe" style="display:none">
+        <div class="sec-lbl">Target Durasi per Tipe Mobil (jam)</div>
+        <div id="tabel-target-tipe" style="border:1px solid var(--border);border-radius:var(--r);overflow:hidden"></div>
+      </div>
+
+      <div style="margin-top:20px;border-top:1px dashed var(--border2);padding-top:16px">
+        <div class="sec-lbl">Prioritas Sekuen per Ekspedisi</div>
+        <p style="font-family:var(--mono);font-size:10.5px;color:var(--text3);margin-bottom:10px">
+          Jadwal PAKAI 1 JALUR BERSAMA sepanjang hari (bukan jam wajib ditunggu).
+          Urutan diproses: label tabel master Pagi → Siang → Malam, LALU ekspedisi di bawah ini PALING AKHIR.
+          Kalau prioritas di atasnya sedikit/kosong, langsung lanjut ke berikutnya tanpa nunggu jam tertentu.
+        </p>
+        <div id="tabel-sekuen-eksp" style="border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:8px"></div>
+        <div style="display:flex;gap:7px">
+          <input type="text" id="input-eksp-baru" placeholder="Nama ekspedisi" style="flex:1;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--r);font-family:var(--mono);font-size:12.5px;text-transform:uppercase">
+          <select id="input-sekuen-baru" style="padding:8px 10px;border:1px solid var(--border2);border-radius:var(--r);font-family:var(--mono);font-size:12.5px">
+            <option value="1">Sekuen 1</option>
+            <option value="2">Sekuen 2</option>
+            <option value="3" selected>Sekuen 3</option>
+          </select>
+          <button onclick="tambahSekuenEksp()" style="padding:8px 14px;background:var(--teal-d);color:#fff;border:none;border-radius:var(--r);font-family:var(--disp);font-size:12px;font-weight:600;text-transform:uppercase;cursor:pointer">+ Tambah</button>
+        </div>
+      </div>
+
+      <div style="margin-top:20px;border-top:1px dashed var(--border2);padding-top:16px">
+        <div class="sec-lbl">No. HP Admin (WhatsApp)</div>
+        <p style="font-family:var(--mono);font-size:10.5px;color:var(--text3);margin-bottom:10px">
+          Nomor yang menerima konfirmasi dari ekspedisi. Boleh lebih dari 1, pisahkan dengan koma. Contoh: 08123456789, 0857xxxx. Berlaku utk link konfirmasi yang dikirim setelah disimpan.
+        </p>
+        <input type="text" id="input-admin-hp" placeholder="08xxxxxxxxxx, 08xxxxxxxxxx" inputmode="tel" style="width:100%;padding:9px 11px;border:1px solid var(--border2);border-radius:var(--r);font-family:var(--mono);font-size:13px">
+      </div>
+
+      <div style="display:flex;gap:9px;margin-top:18px">
+        <button onclick="simpanPengaturanMuat()" style="flex:1;padding:12px;background:var(--navy);color:#fff;border:none;border-radius:var(--r);font-family:var(--disp);font-size:14px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;cursor:pointer">Simpan &amp; Hitung Ulang</button>
+        <button onclick="tutupPengaturan()" style="padding:12px 18px;background:#fff;border:1px solid var(--border2);border-radius:var(--r);font-family:var(--disp);font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text2);cursor:pointer">Batal</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function bukaPengaturan(){
+  const s = muatSettings();
+  const mode = s.mode || 'karton';
+  document.querySelector('input[name="mode-muat"][value="'+mode+'"]').checked = true;
+  document.getElementById('input-kpj').value = s.kartonPerJam || KARTON_PER_JAM_DEFAULT;
+  renderTabelTargetTipe(s.targetTipe || {});
+  renderTabelSekuenEksp(sekuenEkspedisi());
+  document.getElementById('input-admin-hp').value = adminsStr();
+  pilihModeMuat(mode);
+  document.getElementById('pengaturan-overlay').style.display = 'block';
+}
+function renderTabelSekuenEksp(map){
+  const keys = Object.keys(map);
+  if(!keys.length){
+    document.getElementById('tabel-sekuen-eksp').innerHTML = '<div style="padding:11px 13px;font-family:var(--mono);font-size:11.5px;color:var(--text3)">Belum ada ekspedisi diatur.</div>';
+    return;
+  }
+  let html = '<div style="display:grid;grid-template-columns:1fr 100px 40px;background:var(--card2);font-family:var(--disp);font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);padding:8px 13px">'+
+    '<span>Ekspedisi</span><span>Sekuen</span><span></span></div>';
+  keys.forEach(ek=>{
+    html += '<div style="display:grid;grid-template-columns:1fr 100px 40px;align-items:center;padding:8px 13px;border-top:1px solid var(--border)">'+
+      '<span style="font-family:var(--mono);font-size:12.5px;font-weight:600">'+ek+'</span>'+
+      '<span style="font-family:var(--mono);font-size:12.5px">Sekuen '+map[ek]+'</span>'+
+      '<button onclick="hapusSekuenEksp(\''+ek.replace(/'/g,"\\'")+'\')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:15px">×</button>'+
+    '</div>';
+  });
+  document.getElementById('tabel-sekuen-eksp').innerHTML = html;
+}
+let _sekuenEkspEdit = null; // disimpan sementara selama modal terbuka, ikut disimpan saat Simpan diklik
+function tambahSekuenEksp(){
+  const ek = (document.getElementById('input-eksp-baru').value||'').trim().toUpperCase();
+  const sk = Number(document.getElementById('input-sekuen-baru').value)||3;
+  if(!ek){ toast('Isi nama ekspedisi dulu','err'); return; }
+  const map = _sekuenEkspEdit || Object.assign({}, sekuenEkspedisi());
+  map[ek] = sk;
+  _sekuenEkspEdit = map;
+  document.getElementById('input-eksp-baru').value='';
+  renderTabelSekuenEksp(map);
+}
+function hapusSekuenEksp(ek){
+  const map = _sekuenEkspEdit || Object.assign({}, sekuenEkspedisi());
+  delete map[ek];
+  _sekuenEkspEdit = map;
+  renderTabelSekuenEksp(map);
+}
+function tutupPengaturan(){
+  document.getElementById('pengaturan-overlay').style.display = 'none';
+}
+function pilihModeMuat(mode){
+  document.getElementById('panel-karton').style.display = mode==='karton' ? 'block' : 'none';
+  document.getElementById('panel-tipe').style.display = mode==='tipe' ? 'block' : 'none';
+  document.getElementById('mode-karton-box').style.borderColor = mode==='karton' ? 'var(--navy)' : 'var(--border2)';
+  document.getElementById('mode-tipe-box').style.borderColor = mode==='tipe' ? 'var(--navy)' : 'var(--border2)';
+}
+function renderTabelTargetTipe(target){
+  const daftar = (typeof daftarTruck==='function') ? daftarTruck() : TRUCK_BAWAAN;
+  let html = '<div style="display:grid;grid-template-columns:1fr 110px;background:var(--card2);font-family:var(--disp);font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);padding:8px 13px">'+
+    '<span>Tipe Mobil</span><span>Target (jam)</span></div>';
+  daftar.forEach(t=>{
+    const val = target[t] != null ? target[t] : (TARGET_TIPE_DEFAULT[t] != null ? TARGET_TIPE_DEFAULT[t] : 2);
+    html += '<div style="display:grid;grid-template-columns:1fr 110px;align-items:center;padding:8px 13px;border-top:1px solid var(--border)">'+
+      '<span style="font-family:var(--mono);font-size:12.5px;font-weight:600">'+t+'</span>'+
+      '<input type="number" min="0" step="0.5" value="'+val+'" data-tipe="'+t+'" class="target-tipe-input" style="width:90px;padding:6px 8px;border:1px solid var(--border2);border-radius:var(--r);font-family:var(--mono);font-size:12.5px">'+
+    '</div>';
+  });
+  document.getElementById('tabel-target-tipe').innerHTML = html;
+}
+function simpanPengaturanMuat(){
+  const mode = document.querySelector('input[name="mode-muat"]:checked').value;
+  const kpj = Number(document.getElementById('input-kpj').value) || KARTON_PER_JAM_DEFAULT;
+  const targetTipeBaru = {};
+  document.querySelectorAll('.target-tipe-input').forEach(inp=>{
+    targetTipeBaru[inp.dataset.tipe] = Number(inp.value) || 2;
+  });
+  // No HP admin: normalkan ke 62xxx, buang yg terlalu pendek
+  const adminList = (document.getElementById('input-admin-hp').value||'').split(/[,;\n]+/).map(normAdminHP).filter(n=>n.length>=10);
+  if(!adminList.length){ toast('No. HP admin tidak valid (min. 10 digit)','err'); return; }
+  const sekuenBaru = _sekuenEkspEdit || sekuenEkspedisi();
+  _sekuenEkspEdit = null;
+  simpanMuatSettings({ mode: mode, kartonPerJam: kpj, targetTipe: targetTipeBaru, sekuenEkspedisi: sekuenBaru, adminHp: adminList.join(',') });
+  tutupPengaturan();
+  hitungJamMuat();
+  toast('Pengaturan tersimpan — jadwal dihitung ulang','ok');
+}
+</script>
+</body>
+</html>
